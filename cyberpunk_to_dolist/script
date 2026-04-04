@@ -1,5 +1,0 @@
-mkdir -p /home/claude/CyberpunkTodoList/{frontend/{css,js,components,assets/sounds},backend/{routes,models,middleware,services,utils},database/{migrations,seeds},assets/{icons,fonts}}
-echo "Structure created"
-Output
-
-Structure created
