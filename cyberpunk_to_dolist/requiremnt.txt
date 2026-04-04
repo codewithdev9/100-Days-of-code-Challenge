@@ -1,0 +1,49 @@
+# CyberpunkTodoList — Python Dependencies
+# Install: pip install -r requirements.txt
+
+# ── Core Framework ──────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+websockets==13.0
+
+# ── Database ─────────────────────────────────────
+sqlalchemy==2.0.35
+asyncpg==0.29.0           # Async PostgreSQL driver
+alembic==1.13.3           # Migrations
+
+# ── Redis ────────────────────────────────────────
+redis[hiredis]==5.1.0
+aioredis==2.0.1
+
+# ── Auth & Security ──────────────────────────────
+python-jose[cryptography]==3.3.0  # JWT
+bcrypt==4.2.0                      # Password hashing
+pyotp==2.9.0                       # Feature #94: 2FA TOTP
+cryptography==43.0.1               # Feature #90: AES encryption
+pydantic[email]==2.9.2
+pydantic-settings==2.5.2
+
+# ── HTTP Client ──────────────────────────────────
+httpx==0.27.2              # OAuth + OpenAI calls
+
+# ── AI / NLP ────────────────────────────────────
+python-dateutil==2.9.0    # Feature #51: NLP date parsing
+openai==1.51.0             # Feature #52-54: OpenAI integration
+
+# ── Utilities ────────────────────────────────────
+python-multipart==0.0.12   # File uploads
+aiofiles==24.1.0           # Async file I/O
+python-dotenv==1.0.1       # .env loading
+pytz==2024.2               # Timezone handling
+pillow==11.0.0             # Avatar image processing
+
+# ── Email ────────────────────────────────────────
+aiosmtplib==3.0.1          # Feature #84: Async email sending
+email-validator==2.2.0
+
+# ── PDF Generation ──────────────────────────────
+reportlab==4.2.5           # Feature #25: Export to PDF
+weasyprint==62.3           # Alternative PDF engine
+
+# ── Markdown ────────────────────────────────────
+markdown2==2.5.0           # Feature #91: Markdown rendering in backend

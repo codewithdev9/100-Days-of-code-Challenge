@@ -9,7 +9,7 @@
 #define MAX 100
 #define PI 3.141592653589793
 #define HISTORY_FILE "history.txt"
-#define HISTORY_SIZE 
+#define HISTORY_SIZE 10
 
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
