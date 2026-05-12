@@ -1,0 +1,2173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THERMIS — Precision Temperature Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F5F0;
+    --cream-dark: #ECEAE3;
+    --blue-light: #E0F2FE;
+    --blue-mid: #BAE6FD;
+    --blue-accent: #38BDF8;
+    --blue-deep: #0EA5E9;
+    --text-primary: #1A1A18;
+    --text-secondary: #5A5A52;
+    --text-muted: #9A9A90;
+    --hot: #F97316;
+    --cold: #3B82F6;
+    --normal: #22C55E;
+    --shadow-soft: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.08);
+    --shadow-lift: 0 8px 24px rgba(0,0,0,0.10), 0 24px 64px rgba(0,0,0,0.12);
+    --shadow-neu-out: 8px 8px 20px rgba(0,0,0,0.10), -4px -4px 12px rgba(255,255,255,0.9);
+    --shadow-neu-in: inset 4px 4px 10px rgba(0,0,0,0.08), inset -2px -2px 6px rgba(255,255,255,0.8);
+    --radius: 24px;
+    --radius-sm: 12px;
+    --radius-xs: 8px;
+    --transition: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --transition-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background-color: var(--cream);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.5;
+  }
+
+
+
+  /* SPOTLIGHT */
+  #spotlight {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(186,230,253,0.35) 0%, rgba(224,242,254,0.15) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    transform: translate(-50%, -50%);
+    transition: all 0.08s linear;
+  }
+
+  /* LAYOUT */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 48px 0 32px;
+    text-align: center;
+    position: relative;
+  }
+
+  .logo-mark {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: block;
+    opacity: 0;
+    animation: fadeUp 0.8s var(--transition-smooth) 0.1s forwards;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text-primary);
+    opacity: 0;
+    animation: fadeUp 0.8s var(--transition-smooth) 0.2s forwards;
+  }
+
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--blue-deep);
+  }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    margin-top: 16px;
+    opacity: 0;
+    animation: fadeUp 0.8s var(--transition-smooth) 0.35s forwards;
+  }
+
+  /* LIVE CLOCK */
+  #live-clock {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    z-index: 100;
+    background: rgba(245,245,240,0.8);
+    backdrop-filter: blur(8px);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* POINTS DISPLAY */
+  #points-display {
+    position: fixed;
+    top: 24px;
+    left: 32px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--blue-deep);
+    letter-spacing: 0.1em;
+    z-index: 100;
+    background: rgba(224,242,254,0.85);
+    backdrop-filter: blur(8px);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(56,189,248,0.2);
+  }
+
+  /* MAIN CONVERTER CARD */
+  .converter-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 32px;
+    padding: 48px;
+    box-shadow: var(--shadow-lift), 0 0 0 1px rgba(255,255,255,0.5) inset;
+    margin: 40px 0;
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeUp 0.9s var(--transition-smooth) 0.45s forwards;
+  }
+
+  .converter-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  }
+
+  /* SCALE SELECTOR */
+  .scale-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+    background: var(--cream-dark);
+    padding: 6px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-neu-in);
+  }
+
+  .scale-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.25s var(--transition);
+    position: relative;
+  }
+
+  .scale-btn.active {
+    background: white;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-soft);
+    transform: translateY(-1px);
+  }
+
+  .scale-btn:hover:not(.active) {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.5);
+  }
+
+  .scale-btn:active { transform: scale(0.97); }
+
+  /* INPUT GRID */
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 640px) { .input-grid { grid-template-columns: 1fr; } }
+
+  .input-group {
+    position: relative;
+  }
+
+  .input-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .scale-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--blue-accent);
+  }
+
+  .temp-input {
+    width: 100%;
+    background: rgba(245,245,240,0.8);
+    border: 1.5px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    padding: 18px 52px 18px 20px;
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-neu-in);
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+
+  .temp-input::-webkit-outer-spin-button,
+  .temp-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .temp-input:focus {
+    border-color: var(--blue-accent);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(56,189,248,0.12), var(--shadow-soft);
+    transform: translateY(-2px);
+  }
+
+  .unit-badge {
+    position: absolute;
+    right: 16px;
+    bottom: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  /* TEMPERATURE COLOR INDICATOR */
+  .temp-bar {
+    height: 3px;
+    border-radius: 2px;
+    margin-top: 8px;
+    transition: background 0.4s ease, width 0.4s ease;
+    background: linear-gradient(90deg, var(--cold), var(--normal), var(--hot));
+    opacity: 0.3;
+  }
+
+  /* STATUS DISPLAY */
+  .status-display {
+    background: rgba(245,245,240,0.6);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(0,0,0,0.05);
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .status-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    transition: all 0.3s var(--transition);
+  }
+
+  .status-text {
+    flex: 1;
+  }
+
+  .status-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .status-message {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 300;
+    color: var(--text-primary);
+    font-style: italic;
+  }
+
+  /* ASCII THERMOMETER */
+  .thermometer-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 24px 0;
+  }
+
+  #ascii-therm {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: pre;
+    background: rgba(245,245,240,0.5);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: color 0.3s ease;
+    min-width: 80px;
+  }
+
+  /* ADVANCED OPTIONS */
+  .advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 640px) { .advanced-grid { grid-template-columns: 1fr; } }
+
+  .adv-input-group { position: relative; }
+
+  .adv-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .adv-input {
+    width: 100%;
+    background: rgba(245,245,240,0.8);
+    border: 1.5px solid rgba(0,0,0,0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .adv-input:focus {
+    border-color: var(--blue-accent);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+  }
+
+  /* ACTION BUTTONS */
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.15s ease;
+    border-radius: inherit;
+  }
+
+  .btn:hover::after { background: rgba(255,255,255,0.15); }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--text-primary);
+    color: white;
+    box-shadow: 0 4px 16px rgba(26,26,24,0.25);
+  }
+
+  .btn-primary:hover {
+    background: #2A2A28;
+    box-shadow: 0 8px 24px rgba(26,26,24,0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .btn-secondary:hover {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+  }
+
+  .btn-blue {
+    background: linear-gradient(135deg, var(--blue-deep), #0284C7);
+    color: white;
+    box-shadow: 0 4px 16px rgba(14,165,233,0.3);
+  }
+
+  .btn-blue:hover {
+    box-shadow: 0 8px 24px rgba(14,165,233,0.4);
+    transform: translateY(-2px);
+  }
+
+  .btn-danger {
+    background: rgba(249,115,22,0.1);
+    color: var(--hot);
+    border: 1px solid rgba(249,115,22,0.2);
+  }
+
+  .btn-danger:hover {
+    background: rgba(249,115,22,0.15);
+    transform: translateY(-2px);
+  }
+
+  /* RANGE TABLE */
+  .range-table-wrap {
+    margin-top: 24px;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    display: none;
+  }
+
+  .range-table-wrap.visible { display: block; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  th {
+    background: rgba(245,245,240,0.8);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    color: var(--text-secondary);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(224,242,254,0.2); }
+
+  .td-hot { color: var(--hot); }
+  .td-cold { color: var(--cold); }
+  .td-normal { color: var(--normal); }
+
+  /* HISTORY SECTION */
+  .section {
+    margin: 64px 0;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.7s var(--transition-smooth);
+  }
+
+  .section.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-primary);
+  }
+
+  .section-subtitle {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* HISTORY LIST */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .history-item {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.25s var(--transition);
+    cursor: pointer;
+  }
+
+  .history-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-soft);
+    border-color: rgba(56,189,248,0.2);
+  }
+
+  .history-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .history-main {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--text-primary);
+  }
+
+  .history-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .history-copy {
+    padding: 4px 10px;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .history-copy:hover {
+    background: var(--text-primary);
+    color: white;
+    border-color: transparent;
+  }
+
+  .history-empty {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    font-style: italic;
+  }
+
+  /* FEATURES GRID */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .feature-tile {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s var(--transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue-accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .feature-tile:hover {
+    transform: translateY(-4px) translateZ(8px);
+    box-shadow: var(--shadow-lift);
+    border-color: rgba(56,189,248,0.25);
+  }
+
+  .feature-tile:hover::before { opacity: 1; }
+
+  .feature-num {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--blue-accent);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .feature-name {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .feature-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .feature-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tag-core { background: rgba(56,189,248,0.1); color: var(--blue-deep); }
+  .tag-ui { background: rgba(249,115,22,0.08); color: var(--hot); }
+  .tag-data { background: rgba(34,197,94,0.1); color: #15803D; }
+  .tag-fun { background: rgba(168,85,247,0.1); color: #7E22CE; }
+  .tag-science { background: rgba(234,179,8,0.1); color: #854D0E; }
+
+  /* MODAL / ALERT */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.2);
+    backdrop-filter: blur(8px);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .modal-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(24px);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: var(--shadow-lift);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s var(--transition);
+    border: 1px solid rgba(255,255,255,0.9);
+  }
+
+  .modal-overlay.visible .modal {
+    transform: scale(1) translateY(0);
+  }
+
+  .modal-icon { font-size: 48px; margin-bottom: 16px; text-align: center; }
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 300;
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .modal-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .modal-close {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--text-primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .modal-close:hover {
+    background: #2A2A28;
+    transform: translateY(-2px);
+  }
+
+  /* QUIZ SECTION */
+  .quiz-card {
+    background: linear-gradient(135deg, rgba(224,242,254,0.5), rgba(186,230,253,0.3));
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 20px;
+    padding: 32px;
+    margin-top: 16px;
+  }
+
+  .quiz-question {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+
+  .quiz-input-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .quiz-input {
+    flex: 1;
+    background: white;
+    border: 1.5px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .quiz-input:focus {
+    border-color: var(--blue-accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+  }
+
+  .quiz-result {
+    margin-top: 16px;
+    font-size: 14px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    min-height: 24px;
+  }
+
+  /* ACHIEVEMENT BADGE */
+  .achievements-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: white;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    opacity: 0.4;
+  }
+
+  .badge.earned {
+    opacity: 1;
+    border-color: var(--blue-accent);
+    background: rgba(224,242,254,0.5);
+    color: var(--blue-deep);
+    box-shadow: 0 2px 8px rgba(56,189,248,0.15);
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap {
+    background: rgba(0,0,0,0.06);
+    border-radius: 10px;
+    height: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--blue-accent), var(--blue-deep));
+    transition: width 0.6s var(--transition-smooth);
+    width: 0%;
+  }
+
+  /* WEATHER SECTION */
+  .weather-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .weather-tile {
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.2s var(--transition);
+  }
+
+  .weather-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .weather-city {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .weather-temp {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .weather-unit { font-size: 13px; color: var(--text-muted); }
+  .weather-icon { font-size: 20px; margin-top: 4px; }
+
+  /* COOKING GUIDE */
+  .cooking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .cooking-item {
+    background: rgba(255,255,255,0.65);
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.05);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+  }
+
+  .cooking-item:hover { transform: translateX(4px); }
+  .cooking-label { font-size: 12px; color: var(--text-secondary); }
+  .cooking-temp { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 300; color: var(--hot); }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 48px 0 32px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    margin-top: 64px;
+  }
+
+  .footer-quote {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-secondary);
+    max-width: 500px;
+    margin: 0 auto 16px;
+    line-height: 1.5;
+  }
+
+  .footer-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .footer-meta a {
+    color: var(--blue-deep);
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .footer-meta a:hover { opacity: 0.7; }
+
+  /* TOTAL COUNT */
+  #total-count {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--blue-deep);
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--text-primary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    z-index: 600;
+    transition: transform 0.3s var(--transition);
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* LEVEL BADGE */
+  #level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(14,165,233,0.1);
+    border: 1px solid rgba(14,165,233,0.2);
+    border-radius: 20px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--blue-deep);
+    margin-top: 8px;
+  }
+
+  /* MULTI-INPUT */
+  .multi-result {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .multi-chip {
+    background: rgba(224,242,254,0.5);
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text-primary);
+    font-style: italic;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .blink { animation: blink 0.8s step-start infinite; }
+
+  /* DARK MODE */
+  body.dark-mode {
+    --cream: #111110;
+    --cream-dark: #1A1A18;
+    --text-primary: #F0EFE8;
+    --text-secondary: #A0A090;
+    --text-muted: #606058;
+    --shadow-neu-out: 8px 8px 20px rgba(0,0,0,0.5), -4px -4px 12px rgba(255,255,255,0.03);
+    --shadow-neu-in: inset 4px 4px 10px rgba(0,0,0,0.4), inset -2px -2px 6px rgba(255,255,255,0.02);
+    background-color: var(--cream);
+  }
+
+  body.dark-mode .converter-card,
+  body.dark-mode .history-item,
+  body.dark-mode .feature-tile,
+  body.dark-mode .weather-tile,
+  body.dark-mode .cooking-item,
+  body.dark-mode .modal {
+    background: rgba(26,26,24,0.8);
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  body.dark-mode .temp-input,
+  body.dark-mode .adv-input,
+  body.dark-mode .quiz-input,
+  body.dark-mode .status-display,
+  body.dark-mode .scale-selector {
+    background: rgba(10,10,9,0.6);
+    border-color: rgba(255,255,255,0.08);
+  }
+
+  body.dark-mode .btn-secondary { background: rgba(40,40,38,0.8); color: var(--text-primary); }
+  body.dark-mode .badge { background: rgba(20,20,18,0.8); }
+  body.dark-mode .scale-btn.active { background: rgba(40,40,38,0.9); }
+
+  /* MINIMALIST MODE */
+  body.minimalist header .tagline,
+  body.minimalist .logo-mark,
+  body.minimalist .status-label,
+  body.minimalist .section-subtitle,
+  body.minimalist .feature-desc,
+  body.minimalist footer .footer-quote,
+  body.minimalist .adv-label,
+  body.minimalist .input-label,
+  body.minimalist .scale-btn { opacity: 0.3; }
+
+  body.minimalist h1 { font-size: clamp(32px, 5vw, 64px); }
+
+  /* HINT TOOLTIP */
+  [data-tooltip] {
+    position: relative;
+  }
+  [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-primary);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    letter-spacing: 0.02em;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .container { padding: 0 20px; }
+    .converter-card { padding: 28px 24px; }
+    h1 { font-size: 48px; }
+    .btn-row { flex-direction: column; }
+    .btn { min-width: unset; }
+    #live-clock { display: none; }
+    #points-display { top: auto; bottom: 80px; left: 16px; }
+    .features-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+
+  /* DIVIDER */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08), transparent);
+    margin: 8px 0;
+  }
+
+  /* TOGGLE ROW */
+  .toggle-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .toggle-btn {
+    padding: 7px 14px;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 20px;
+    background: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .toggle-btn:hover, .toggle-btn.active {
+    background: var(--text-primary);
+    color: white;
+    border-color: transparent;
+    transform: translateY(-1px);
+  }
+
+  body.dark-mode .toggle-btn { background: rgba(30,30,28,0.8); border-color: rgba(255,255,255,0.1); }
+
+  /* FACT BOX */
+  .fact-box {
+    background: linear-gradient(135deg, rgba(186,230,253,0.3), rgba(224,242,254,0.2));
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .fact-label {
+    font-family: 'DM Mono', monospace;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blue-deep);
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SPOTLIGHT -->
+<div id="spotlight"></div>
+
+<!-- LIVE CLOCK -->
+<div id="live-clock">— —:— —</div>
+
+<!-- POINTS -->
+<div id="points-display">◆ <span id="pts">0</span> pts · <span id="level-text">Novice</span></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-icon" id="modal-icon">⚠️</div>
+    <div class="modal-title" id="modal-title">Alert</div>
+    <div class="modal-body" id="modal-body"></div>
+    <button class="modal-close" onclick="closeModal()">Understood</button>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <span class="logo-mark">Thermis · Precision Temperature Interface · v2.0</span>
+    <h1>Temp<em>erature</em></h1>
+    <p class="tagline">Every degree. Every scale. Real-time precision.</p>
+    <div id="level-badge">⚗ <span id="level-badge-text">Novice</span></div>
+  </header>
+
+  <!-- MAIN CONVERTER CARD -->
+  <div class="converter-card" id="converter-card">
+
+    <!-- TOGGLE ROW -->
+    <div class="toggle-row">
+      <button class="toggle-btn active" onclick="toggleDarkMode(this)" id="darkBtn">☾ Dark Mode</button>
+      <button class="toggle-btn" onclick="toggleMinimalist(this)">◻ Minimalist</button>
+      <button class="toggle-btn" onclick="copyResult()">⊕ Copy Result</button>
+      <button class="toggle-btn" onclick="exportCSV()">↓ Export CSV</button>
+      <button class="toggle-btn" onclick="shareResult()">⟳ Share</button>
+      <button class="toggle-btn" onclick="toggleVerbose(this)" id="verboseBtn">⌥ Verbose</button>
+    </div>
+
+    <!-- SCALE BUTTONS -->
+    <div class="scale-selector">
+      <button class="scale-btn active" onclick="setActiveScale('C', this)">Celsius °C</button>
+      <button class="scale-btn" onclick="setActiveScale('F', this)">Fahrenheit °F</button>
+      <button class="scale-btn" onclick="setActiveScale('K', this)">Kelvin K</button>
+      <button class="scale-btn" onclick="setActiveScale('Ra', this)">Rankine °Ra</button>
+      <button class="scale-btn" onclick="setActiveScale('Re', this)">Réaumur °Ré</button>
+    </div>
+
+    <!-- INPUT GRID -->
+    <div class="input-grid">
+      <div class="input-group">
+        <div class="input-label"><span class="scale-dot" style="background:#3B82F6"></span>Celsius</div>
+        <input type="number" class="temp-input" id="inp-C" placeholder="0" oninput="convertFrom('C')">
+        <span class="unit-badge">°C</span>
+        <div class="temp-bar" id="bar-C"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label"><span class="scale-dot" style="background:#F97316"></span>Fahrenheit</div>
+        <input type="number" class="temp-input" id="inp-F" placeholder="32" oninput="convertFrom('F')">
+        <span class="unit-badge">°F</span>
+        <div class="temp-bar" id="bar-F"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label"><span class="scale-dot" style="background:#8B5CF6"></span>Kelvin</div>
+        <input type="number" class="temp-input" id="inp-K" placeholder="273.15" oninput="convertFrom('K')">
+        <span class="unit-badge">K</span>
+        <div class="temp-bar" id="bar-K"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label"><span class="scale-dot" style="background:#EC4899"></span>Rankine</div>
+        <input type="number" class="temp-input" id="inp-Ra" placeholder="491.67" oninput="convertFrom('Ra')">
+        <span class="unit-badge">°Ra</span>
+        <div class="temp-bar" id="bar-Ra"></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label"><span class="scale-dot" style="background:#14B8A6"></span>Réaumur</div>
+        <input type="number" class="temp-input" id="inp-Re" placeholder="0" oninput="convertFrom('Re')">
+        <span class="unit-badge">°Ré</span>
+        <div class="temp-bar" id="bar-Re"></div>
+      </div>
+      <div class="input-group" style="display:flex; flex-direction:column; justify-content:flex-end;">
+        <div class="input-label"><span class="scale-dot" style="background:#22C55E"></span>Precision</div>
+        <input type="number" class="temp-input" id="precision" placeholder="4" value="4" min="0" max="10" style="font-size:20px; padding:18px 20px;" oninput="refreshConversion()">
+        <div class="temp-bar" style="opacity:0.1"></div>
+      </div>
+    </div>
+
+    <!-- ASCII THERMOMETER -->
+    <div class="thermometer-wrap">
+      <div id="ascii-therm">    │  \n    │  \n    │  \n   ███ \n</div>
+    </div>
+
+    <!-- STATUS DISPLAY -->
+    <div class="status-display" id="status-display">
+      <div class="status-icon" id="status-icon">🌡</div>
+      <div class="status-text">
+        <div class="status-label">Temperature Analysis</div>
+        <div class="status-message" id="status-message">Enter a temperature to begin analysis...</div>
+      </div>
+    </div>
+
+    <!-- VERBOSE LOG -->
+    <div id="verbose-log" style="display:none; background:rgba(0,0,0,0.04); border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:11px; color:var(--text-muted); line-height:2; font-family:'DM Mono',monospace;"></div>
+
+    <!-- FACT BOX -->
+    <div class="fact-box" id="fact-box">
+      <div class="fact-label">Science Fact</div>
+      <div id="fact-text">Absolute zero (−273.15°C) is the coldest theoretical temperature — at this point, all classical particle motion stops.</div>
+    </div>
+
+    <!-- ADVANCED OPTIONS -->
+    <div style="margin-top: 24px;">
+      <div class="input-label" style="margin-bottom:12px;">⊞ Advanced Operations</div>
+      <div class="advanced-grid">
+        <div class="adv-input-group">
+          <label class="adv-label">Multi-values (comma separated)</label>
+          <input class="adv-input" id="multi-input" placeholder="e.g. 0, 25, 100, 212" oninput="convertMulti()">
+        </div>
+        <div class="adv-input-group">
+          <label class="adv-label">Range: Start → End (step)</label>
+          <input class="adv-input" id="range-input" placeholder="e.g. 0,100,10 (°C range)" oninput="convertRange()">
+        </div>
+        <div class="adv-input-group">
+          <label class="adv-label">Mass (kg) for Heat Energy (Q=mcΔT)</label>
+          <input class="adv-input" id="mass-input" placeholder="mass in kg" type="number" oninput="calcHeat()">
+        </div>
+        <div class="adv-input-group">
+          <label class="adv-label">ΔT (temperature change in °C)</label>
+          <input class="adv-input" id="delta-input" placeholder="ΔT in °C" type="number" oninput="calcHeat()">
+        </div>
+      </div>
+      <div id="multi-result" class="multi-result"></div>
+      <div id="heat-result" style="margin-top:12px; font-family:'Fraunces',serif; font-style:italic; font-size:14px; color:var(--text-secondary);"></div>
+    </div>
+
+    <!-- RANGE TABLE -->
+    <div class="range-table-wrap" id="range-table-wrap">
+      <table id="range-table">
+        <thead>
+          <tr><th>°C</th><th>°F</th><th>K</th><th>°Ré</th><th>Note</th></tr>
+        </thead>
+        <tbody id="range-table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="divider" style="margin:24px 0;"></div>
+
+    <!-- BTN ROW -->
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveToHistory()" data-tooltip="Save this conversion">Save to History</button>
+      <button class="btn btn-blue" onclick="showQuiz()" data-tooltip="Test your knowledge">Daily Quiz</button>
+      <button class="btn btn-secondary" onclick="clearAll()" data-tooltip="Reset all fields">Clear All</button>
+      <button class="btn btn-danger" onclick="undoLast()" data-tooltip="Undo last entry">⟵ Undo</button>
+    </div>
+
+    <!-- PROGRESS -->
+    <div style="margin-top: 20px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+        <span class="adv-label">Session Progress</span>
+        <span class="adv-label" id="progress-label">0 / 10 conversions to next level</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- ACHIEVEMENTS -->
+    <div style="margin-top:16px;">
+      <div class="adv-label" style="margin-bottom:8px;">Achievements</div>
+      <div class="achievements-row" id="achievements-row">
+        <div class="badge" id="ach-first">🔬 First Conversion</div>
+        <div class="badge" id="ach-ten">⚗ 10 Conversions</div>
+        <div class="badge" id="ach-absolute">❄ Absolute Zero Explorer</div>
+        <div class="badge" id="ach-fire">🔥 Boiling Point Finder</div>
+        <div class="badge" id="ach-quiz">🧠 Quiz Master</div>
+        <div class="badge" id="ach-easter">🥚 Easter Egg Hunter</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SECTION -->
+  <div class="section" id="history-section">
+    <div class="section-header">
+      <h2 class="section-title">Session History</h2>
+      <div>
+        <span class="section-subtitle">Last 5 conversions</span>
+        <button class="toggle-btn" style="margin-left:12px;" onclick="clearHistory()">Clear History</button>
+      </div>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="history-empty">No conversions yet. Start converting above.</div>
+    </div>
+    <div style="text-align:center; margin-top:32px;">
+      <div class="adv-label">Total Session Conversions</div>
+      <div id="total-count">0</div>
+      <div class="adv-label" id="session-time">Session: 0s</div>
+    </div>
+  </div>
+
+  <!-- QUIZ SECTION -->
+  <div class="section" id="quiz-section">
+    <div class="section-header">
+      <h2 class="section-title">Daily Quiz</h2>
+      <span class="section-subtitle">Test your temperature intuition</span>
+    </div>
+    <div class="quiz-card">
+      <div class="quiz-question" id="quiz-question">Loading quiz...</div>
+      <div class="quiz-input-row">
+        <input type="number" class="quiz-input" id="quiz-answer" placeholder="Your answer...">
+        <button class="btn btn-blue" style="flex:0; white-space:nowrap;" onclick="checkQuiz()">Check Answer</button>
+        <button class="btn btn-secondary" style="flex:0; white-space:nowrap;" onclick="newQuiz()">New Question</button>
+      </div>
+      <div class="quiz-result" id="quiz-result"></div>
+      <div style="margin-top:12px; display:flex; gap:16px; font-size:11px; color:var(--text-muted);">
+        <span>Score: <strong id="quiz-score">0</strong></span>
+        <span>Level: <strong id="quiz-level">Novice</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEATHER SECTION -->
+  <div class="section" id="weather-section">
+    <div class="section-header">
+      <h2 class="section-title">World Temperatures</h2>
+      <span class="section-subtitle">Reference data · Simulated</span>
+    </div>
+    <div class="weather-grid" id="weather-grid"></div>
+    <div class="fact-box" style="margin-top:16px;">
+      <div class="fact-label">NASA Mode</div>
+      <div>Surface of the Sun: ~5,500°C / 9,932°F · Pluto (avg): −229°C / −380°F · Moon (day): 127°C / 261°F · Moon (night): −173°C / −279°F</div>
+    </div>
+  </div>
+
+  <!-- COOKING GUIDE -->
+  <div class="section" id="cooking-section">
+    <div class="section-header">
+      <h2 class="section-title">Cooking Guide</h2>
+      <span class="section-subtitle">Oven settings & baking temperatures</span>
+    </div>
+    <div class="cooking-grid" id="cooking-grid"></div>
+  </div>
+
+
+
+  <footer>
+    <div class="footer-quote">"Temperature is the degree of hotness or coldness measured on a definite scale — but precision is an art."</div>
+    <div class="footer-meta">
+      THERMIS v2.0 · Built with pure HTML5, CSS3 & Vanilla JS ·
+      <a href="#" onclick="showDonate()">☕ Buy me a coffee</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+// === STATE ===
+let state = {
+  celsius: null,
+  activeScale: 'C',
+  history: JSON.parse(localStorage.getItem('thermis_history') || '[]'),
+  totalConversions: parseInt(localStorage.getItem('thermis_total') || '0'),
+  points: parseInt(localStorage.getItem('thermis_points') || '0'),
+  achievements: JSON.parse(localStorage.getItem('thermis_achievements') || '{}'),
+  quizScore: 0,
+  quizTotal: 0,
+  quizAnswer: null,
+  sessionStart: Date.now(),
+  lastValue: null,
+  verboseMode: false,
+  darkMode: false,
+  minimalistMode: false,
+  memoryValue: null
+};
+
+const LEVELS = [
+  {name:'Novice', min:0}, {name:'Learner', min:5}, {name:'Student', min:15},
+  {name:'Analyst', min:30}, {name:'Chemist', min:60}, {name:'Scientist', min:100},
+  {name:'Physicist', min:200}, {name:'Thermodynamicist', min:500}
+];
+
+const FACTS = [
+  "Absolute zero (−273.15°C) is theoretically unreachable, per the third law of thermodynamics.",
+  "Water boils at 100°C at sea level, but at 93°C at 3,000m altitude due to lower atmospheric pressure.",
+  "The hottest temperature ever recorded on Earth's surface was 56.7°C in Furnace Creek, Death Valley.",
+  "Human body temperature averages 37°C but varies from 36.1°C to 37.2°C throughout the day.",
+  "Dry ice (solid CO₂) sublimates at −78.5°C, skipping the liquid phase entirely.",
+  "Daniel Gabriel Fahrenheit invented the mercury thermometer and his scale in 1714.",
+  "Anders Celsius originally proposed his scale inverted — 0 was boiling, 100 was freezing.",
+  "The Kelvin scale was proposed by Lord Kelvin in 1848 and is the SI base unit for temperature.",
+  "Lightning can heat the surrounding air to ~30,000 K — 5× hotter than the sun's surface.",
+  "In gas laws (PV=nRT), temperature must always be in Kelvin for calculations to work correctly."
+];
+
+const WEATHER_DATA = [
+  {city:'Dubai', C:42, icon:'☀️'}, {city:'Reykjavik', C:-2, icon:'🌨'},
+  {city:'Singapore', C:30, icon:'🌧'}, {city:'Moscow', C:-5, icon:'❄️'},
+  {city:'New Delhi', C:38, icon:'🌤'}, {city:'Sydney', C:22, icon:'🌞'},
+  {city:'Nairobi', C:19, icon:'⛅'}, {city:'Toronto', C:8, icon:'🌥'},
+  {city:'São Paulo', C:25, icon:'🌦'}, {city:'Oslo', C:-8, icon:'🌨'},
+  {city:'Bangkok', C:33, icon:'☀️'}, {city:'Buenos Aires', C:20, icon:'🌤'}
+];
+
+const COOKING_DATA = [
+  {label:'Cookies', C:180}, {label:'Bread', C:220}, {label:'Pizza', C:250},
+  {label:'Roast Chicken', C:200}, {label:'Cakes', C:175}, {label:'Muffins', C:190},
+  {label:'Pastry', C:200}, {label:'Soufflé', C:190}, {label:'Casserole', C:165},
+  {label:'Very slow cook', C:120}, {label:'Slow cook', C:150}, {label:'Moderate', C:175},
+  {label:'Hot oven', C:220}, {label:'Very hot', C:240}, {label:'Broil', C:260},
+  {label:'Candy (soft ball)', C:116}, {label:'Caramel', C:177}, {label:'Deep fry oil', C:175}
+];
+
+
+
+// === CONVERSION ENGINE ===
+function toCelsius(val, scale) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return null;
+  switch(scale) {
+    case 'C': return v;
+    case 'F': return (v - 32) * 5/9;
+    case 'K': return v - 273.15;
+    case 'Ra': return (v - 491.67) * 5/9;
+    case 'Re': return v * 5/4;
+    default: return v;
+  }
+}
+
+function fromCelsius(c, scale, p) {
+  const prec = parseInt(p) || 4;
+  let result;
+  switch(scale) {
+    case 'C': result = c; break;
+    case 'F': result = c * 9/5 + 32; break;
+    case 'K': result = c + 273.15; break;
+    case 'Ra': result = (c + 273.15) * 9/5; break;
+    case 'Re': result = c * 4/5; break;
+    default: result = c;
+  }
+  return parseFloat(result.toFixed(prec));
+}
+
+function convertFrom(scale) {
+  const start = performance.now();
+  const raw = document.getElementById(`inp-${scale}`).value;
+  if (raw === '' || raw === null) { clearOutputs(); return; }
+  const c = toCelsius(raw, scale);
+  if (c === null) return;
+  const prec = document.getElementById('precision').value || 4;
+
+  // Absolute zero check
+  if (c < -273.15) {
+    showModal('🥶', 'Below Absolute Zero!', `${parseFloat(raw).toFixed(2)}${getUnit(scale)} is below absolute zero (${fromCelsius(-273.15, scale, 4)}${getUnit(scale)}). This temperature is physically impossible.`);
+    earnAchievement('ach-absolute');
+    document.getElementById(`inp-${scale}`).value = '';
+    clearOutputs();
+    return;
+  }
+
+  state.celsius = c;
+  state.lastValue = {val: raw, scale};
+
+  // Update all inputs
+  const scales = ['C','F','K','Ra','Re'];
+  scales.forEach(s => {
+    if (s !== scale) {
+      document.getElementById(`inp-${s}`).value = fromCelsius(c, s, prec);
+    }
+  });
+
+  updateBars(c);
+  updateStatus(c);
+  updateThermometer(c);
+  checkEasterEgg(c);
+
+  const elapsed = (performance.now() - start).toFixed(3);
+  updateVerbose(c, scale, raw, prec, elapsed);
+  updateFact();
+  state.totalConversions++;
+  localStorage.setItem('thermis_total', state.totalConversions);
+  document.getElementById('total-count').textContent = state.totalConversions;
+  updatePoints(1);
+  checkAchievements();
+  refreshProgress();
+}
+
+function getUnit(scale) {
+  const u = {'C':'°C','F':'°F','K':'K','Ra':'°Ra','Re':'°Ré'};
+  return u[scale] || '';
+}
+
+function clearOutputs() {
+  state.celsius = null;
+  ['C','F','K','Ra','Re'].forEach(s => {
+    if (document.activeElement !== document.getElementById(`inp-${s}`)) {
+      document.getElementById(`inp-${s}`).value = '';
+    }
+    document.getElementById(`bar-${s}`).style.opacity = '0.1';
+  });
+  document.getElementById('status-message').textContent = 'Enter a temperature to begin analysis...';
+  document.getElementById('status-icon').textContent = '🌡';
+}
+
+function refreshConversion() {
+  if (state.celsius !== null) {
+    const prec = document.getElementById('precision').value || 4;
+    ['C','F','K','Ra','Re'].forEach(s => {
+      document.getElementById(`inp-${s}`).value = fromCelsius(state.celsius, s, prec);
+    });
+  }
+}
+
+function updateBars(c) {
+  const normalized = Math.min(Math.max((c + 100) / 200, 0), 1);
+  ['C','F','K','Ra','Re'].forEach(s => {
+    const bar = document.getElementById(`bar-${s}`);
+    bar.style.opacity = '0.4';
+    if (c > 50) bar.style.background = '#F97316';
+    else if (c < 0) bar.style.background = '#3B82F6';
+    else bar.style.background = '#22C55E';
+  });
+}
+
+function updateStatus(c) {
+  const icon = document.getElementById('status-icon');
+  const msg = document.getElementById('status-message');
+  const disp = document.getElementById('status-display');
+  let message = '', emoji = '';
+
+  if (c <= -273.15) { emoji = '🚫'; message = 'Absolute zero — physically impossible!'; }
+  else if (c < -89) { emoji = '🌨️'; message = `Earth's coldest recorded temp is −89°C. This is colder.`; }
+  else if (c < -40) { emoji = '🥶'; message = 'Extreme cold. Dangerous for human exposure.'; }
+  else if (c < 0) { emoji = '❄️'; message = 'Sub-zero. Water freezes. Dress in layers.'; }
+  else if (c === 0) { emoji = '🧊'; message = 'Freezing point of water at 1 atm.'; }
+  else if (c < 15) { emoji = '🌥️'; message = 'Cool temperature. A jacket is advisable.'; }
+  else if (c < 22) { emoji = '🌤️'; message = 'Comfortable. Standard room temperature range.'; }
+  else if (c < 37) { emoji = '😊'; message = 'Warm and pleasant. No special clothing needed.'; }
+  else if (c === 37) { emoji = '🌡️'; message = 'Normal human body temperature. All is well.'; }
+  else if (c < 38.5) { emoji = '🤒'; message = 'Slight fever. Monitor closely.'; }
+  else if (c < 40) { emoji = '🔥'; message = 'High fever. Seek medical attention.'; }
+  else if (c < 100) { emoji = '☀️'; message = 'Hot! Above safe outdoor temperature for prolonged exposure.'; }
+  else if (c === 100) { emoji = '💧'; message = 'Boiling point of water at sea level (1 atm).'; earnAchievement('ach-fire'); }
+  else if (c < 300) { emoji = '🍳'; message = 'Cooking range. Safe for ovens and cooking.'; }
+  else if (c < 1000) { emoji = '🌋'; message = 'Industrial temperatures. Molten metals melt here.'; }
+  else { emoji = '⚡'; message = 'Extreme temperature. Plasma-level conditions.'; }
+
+  icon.textContent = emoji;
+  icon.style.transform = 'scale(1.2)';
+  setTimeout(() => { icon.style.transform = 'scale(1)'; }, 200);
+  msg.textContent = message;
+  disp.style.borderColor = c > 50 ? 'rgba(249,115,22,0.3)' : c < 0 ? 'rgba(59,130,246,0.3)' : 'rgba(34,197,94,0.2)';
+}
+
+function updateThermometer(c) {
+  const t = document.getElementById('ascii-therm');
+  const clamped = Math.min(Math.max(c, -100), 150);
+  const total = 10;
+  const filled = Math.round((clamped + 100) / 250 * total);
+  let lines = '';
+  for (let i = total; i >= 0; i--) {
+    if (i === 0) lines += '  ███  \n';
+    else if (i <= filled) lines += '  ║█║  \n';
+    else lines += '  ║ ║  \n';
+  }
+  t.textContent = lines;
+  t.style.color = c > 50 ? 'var(--hot)' : c < 0 ? 'var(--cold)' : 'var(--normal)';
+}
+
+function updateVerbose(c, scale, raw, prec, elapsed) {
+  if (!state.verboseMode) return;
+  const log = document.getElementById('verbose-log');
+  const hex = Math.round(c).toString(16).toUpperCase().padStart(4, '0');
+  const bin = (Math.round(Math.abs(c)) >>> 0).toString(2).padStart(8, '0');
+  log.innerHTML = `
+    [INPUT] ${raw}${getUnit(scale)} → Celsius: ${c.toFixed(6)}°C<br>
+    [MATH] F=${(c*9/5+32).toFixed(prec)} | K=${(c+273.15).toFixed(prec)} | Ra=${((c+273.15)*9/5).toFixed(prec)} | Ré=${(c*4/5).toFixed(prec)}<br>
+    [PRECISION] ${prec} decimal places<br>
+    [HEX] 0x${hex} | [BIN] ${bin}<br>
+    [PERFORMANCE] Calculation completed in ${elapsed}ms<br>
+    [SCALE] Active: ${scale} | Abs. diff from 0°C: ${Math.abs(c).toFixed(4)}
+  `;
+}
+
+function updateFact() {
+  const idx = Math.floor(Math.random() * FACTS.length);
+  document.getElementById('fact-text').textContent = FACTS[idx];
+}
+
+function checkEasterEgg(c) {
+  const f = fromCelsius(c, 'F', 2);
+  let msg = null;
+  if (Math.abs(c - 69) < 0.1) msg = '😏 Nice. 69°C — the algorithm approves.';
+  if (Math.abs(c - 420) < 0.1) msg = '🌿 420°C — legendary. Hot enough to forge myths.';
+  if (Math.abs(f - 100) < 0.1) msg = '💯 Exactly 100°F! Body temperature territory — are you running hot?';
+  if (msg) {
+    showToast(msg);
+    earnAchievement('ach-easter');
+  }
+}
+
+// === MULTI CONVERT ===
+function convertMulti() {
+  const input = document.getElementById('multi-input').value;
+  const result = document.getElementById('multi-result');
+  if (!input.trim()) { result.innerHTML = ''; return; }
+  const vals = input.split(',').map(v => v.trim()).filter(v => v !== '');
+  const prec = document.getElementById('precision').value || 4;
+  const chips = vals.map(v => {
+    const c = parseFloat(v);
+    if (isNaN(c)) return `<span class="multi-chip" style="border-color:rgba(249,115,22,0.3);color:var(--hot)">Invalid: ${v}</span>`;
+    const avg = vals.map(Number).filter(n=>!isNaN(n)).reduce((a,b)=>a+b,0)/vals.filter(v=>!isNaN(parseFloat(v))).length;
+    const f = fromCelsius(c, 'F', prec);
+    const k = fromCelsius(c, 'K', prec);
+    return `<span class="multi-chip">${c}°C = ${f}°F = ${k}K</span>`;
+  });
+  // Average & std dev
+  const nums = vals.map(Number).filter(n => !isNaN(n));
+  if (nums.length > 1) {
+    const avg = nums.reduce((a,b)=>a+b,0) / nums.length;
+    const variance = nums.map(n => (n-avg)**2).reduce((a,b)=>a+b,0) / nums.length;
+    const std = Math.sqrt(variance);
+    chips.push(`<span class="multi-chip" style="background:rgba(34,197,94,0.1); border-color:rgba(34,197,94,0.3)">Avg: ${avg.toFixed(2)}°C · σ: ${std.toFixed(2)}</span>`);
+  }
+  result.innerHTML = chips.join('');
+}
+
+// === RANGE CONVERT ===
+function convertRange() {
+  const input = document.getElementById('range-input').value.trim();
+  const wrap = document.getElementById('range-table-wrap');
+  const tbody = document.getElementById('range-table-body');
+  if (!input) { wrap.classList.remove('visible'); return; }
+  const parts = input.split(',').map(v => parseFloat(v.trim()));
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return;
+  const start = parts[0], end = parts[1], step = parts[2] || 10;
+  const prec = document.getElementById('precision').value || 2;
+  tbody.innerHTML = '';
+  let rows = 0;
+  for (let c = start; c <= end + 0.001; c += step) {
+    if (rows > 50) break;
+    const f = fromCelsius(c, 'F', prec);
+    const k = fromCelsius(c, 'K', prec);
+    const re = fromCelsius(c, 'Re', prec);
+    let note = '';
+    let cls = '';
+    if (Math.abs(c) < 0.1) { note = 'Freezing point'; cls = 'td-cold'; }
+    else if (Math.abs(c - 100) < 0.1) { note = 'Boiling point'; cls = 'td-hot'; }
+    else if (c >= 36 && c <= 37.5) { note = 'Body temp'; cls = 'td-normal'; }
+    else if (c < 0) cls = 'td-cold';
+    else if (c > 60) cls = 'td-hot';
+    else cls = 'td-normal';
+    tbody.innerHTML += `<tr><td class="${cls}">${c.toFixed(1)}</td><td class="${cls}">${f}</td><td>${k}</td><td>${re}</td><td style="color:var(--text-muted);font-size:11px;">${note}</td></tr>`;
+    rows++;
+  }
+  wrap.classList.add('visible');
+}
+
+// === HEAT ENERGY ===
+function calcHeat() {
+  const m = parseFloat(document.getElementById('mass-input').value);
+  const dt = parseFloat(document.getElementById('delta-input').value);
+  const result = document.getElementById('heat-result');
+  if (isNaN(m) || isNaN(dt)) { result.textContent = ''; return; }
+  const c_water = 4186;
+  const Q = m * c_water * dt;
+  result.innerHTML = `Q = mcΔT = ${m} × 4186 × ${dt} = <strong>${Q.toFixed(2)} J</strong> (${(Q/1000).toFixed(4)} kJ) — using water's specific heat capacity`;
+}
+
+// === HISTORY ===
+function saveToHistory() {
+  if (state.celsius === null) { showToast('Enter a value first!'); return; }
+  const prec = document.getElementById('precision').value || 4;
+  const now = new Date();
+  const entry = {
+    display: `${fromCelsius(state.celsius,'C',prec)}°C = ${fromCelsius(state.celsius,'F',prec)}°F = ${fromCelsius(state.celsius,'K',prec)}K`,
+    time: now.toLocaleTimeString(),
+    date: now.toLocaleDateString(),
+    celsius: state.celsius
+  };
+  state.history.unshift(entry);
+  if (state.history.length > 5) state.history.pop();
+  localStorage.setItem('thermis_history', JSON.stringify(state.history));
+  renderHistory();
+  playBeep();
+  showToast('Saved to history ✓');
+  earnAchievement('ach-first');
+  updatePoints(2);
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.history.length === 0) {
+    list.innerHTML = '<div class="history-empty">No conversions yet. Start converting above.</div>';
+    return;
+  }
+  list.innerHTML = state.history.map((h, i) => `
+    <div class="history-item">
+      <span class="history-num">${(i+1).toString().padStart(2,'0')}</span>
+      <div class="history-main">${h.display}</div>
+      <span class="history-time">${h.time} · ${h.date}</span>
+      <button class="history-copy" onclick="copyToClipboard('${h.display}')">copy</button>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  state.history = [];
+  localStorage.setItem('thermis_history', '[]');
+  renderHistory();
+  showToast('History cleared');
+}
+
+function undoLast() {
+  if (state.lastValue) {
+    document.getElementById(`inp-${state.lastValue.scale}`).value = state.lastValue.val;
+    convertFrom(state.lastValue.scale);
+    showToast('Restored last value');
+  } else showToast('Nothing to undo');
+}
+
+// === QUIZ ===
+const QUIZ_QUESTIONS = [
+  {q: 'What is 100°C in Fahrenheit?', a: 212, unit: '°F', hint: 'Boiling point of water'},
+  {q: 'What is 0°C in Fahrenheit?', a: 32, unit: '°F', hint: 'Freezing point of water'},
+  {q: 'What is 37°C in Fahrenheit?', a: 98.6, unit: '°F', hint: 'Body temperature'},
+  {q: 'What is −40°C in Fahrenheit?', a: -40, unit: '°F', hint: 'The only point where C = F'},
+  {q: 'What is 0°C in Kelvin?', a: 273.15, unit: 'K', hint: 'Add 273.15'},
+  {q: 'What is absolute zero in Celsius?', a: -273.15, unit: '°C', hint: 'The coldest possible temperature'},
+  {q: 'What is 212°F in Celsius?', a: 100, unit: '°C', hint: 'F to C = (F−32)×5/9'},
+  {q: 'What is 98.6°F in Celsius?', a: 37, unit: '°C', hint: 'Normal body temperature'},
+  {q: 'What is 300K in Celsius?', a: 26.85, unit: '°C', hint: 'K to C = K−273.15'},
+  {q: 'What is 20°C in Rankine?', a: 527.67, unit: '°Ra', hint: '(C+273.15)×9/5'},
+];
+
+let currentQuiz = null;
+
+function newQuiz() {
+  currentQuiz = QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)];
+  document.getElementById('quiz-question').textContent = currentQuiz.q;
+  document.getElementById('quiz-answer').value = '';
+  document.getElementById('quiz-result').textContent = '';
+  document.getElementById('quiz-result').style.color = '';
+}
+
+function showQuiz() {
+  document.getElementById('quiz-section').scrollIntoView({behavior:'smooth'});
+  newQuiz();
+}
+
+function checkQuiz() {
+  if (!currentQuiz) { newQuiz(); return; }
+  const answer = parseFloat(document.getElementById('quiz-answer').value);
+  const result = document.getElementById('quiz-result');
+  if (isNaN(answer)) { result.textContent = 'Please enter a number.'; result.style.color = 'var(--hot)'; return; }
+  const tolerance = Math.abs(currentQuiz.a) * 0.01 + 0.1;
+  if (Math.abs(answer - currentQuiz.a) <= tolerance) {
+    result.textContent = `✓ Correct! ${currentQuiz.a}${currentQuiz.unit} — ${currentQuiz.hint}`;
+    result.style.color = 'var(--normal)';
+    state.quizScore++;
+    updatePoints(5);
+    earnAchievement('ach-quiz');
+  } else {
+    result.textContent = `✗ Not quite. The answer is ${currentQuiz.a}${currentQuiz.unit}. Hint: ${currentQuiz.hint}`;
+    result.style.color = 'var(--hot)';
+  }
+  state.quizTotal++;
+  document.getElementById('quiz-score').textContent = `${state.quizScore}/${state.quizTotal}`;
+  const ql = state.quizScore < 3 ? 'Novice' : state.quizScore < 7 ? 'Student' : 'Expert';
+  document.getElementById('quiz-level').textContent = ql;
+}
+
+// === POINTS & LEVELS ===
+function updatePoints(n) {
+  state.points += n;
+  localStorage.setItem('thermis_points', state.points);
+  document.getElementById('pts').textContent = state.points;
+  const level = getLevel();
+  document.getElementById('level-text').textContent = level.name;
+  document.getElementById('level-badge-text').textContent = level.name;
+}
+
+function getLevel() {
+  let level = LEVELS[0];
+  for (const l of LEVELS) { if (state.points >= l.min) level = l; }
+  return level;
+}
+
+function refreshProgress() {
+  const level = getLevel();
+  const idx = LEVELS.indexOf(level);
+  const next = LEVELS[idx + 1];
+  if (!next) {
+    document.getElementById('progress-fill').style.width = '100%';
+    document.getElementById('progress-label').textContent = 'Max level reached!';
+    return;
+  }
+  const pct = ((state.points - level.min) / (next.min - level.min)) * 100;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+  document.getElementById('progress-label').textContent = `${state.points - level.min} / ${next.min - level.min} pts to ${next.name}`;
+}
+
+function checkAchievements() {
+  if (state.totalConversions >= 1) earnAchievement('ach-first');
+  if (state.totalConversions >= 10) earnAchievement('ach-ten');
+}
+
+function earnAchievement(id) {
+  if (state.achievements[id]) return;
+  state.achievements[id] = true;
+  localStorage.setItem('thermis_achievements', JSON.stringify(state.achievements));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add('earned'); showToast(`Achievement unlocked: ${el.textContent}`); }
+}
+
+// === UI ACTIONS ===
+function setActiveScale(s, btn) {
+  state.activeScale = s;
+  document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleDarkMode(btn) {
+  state.darkMode = !state.darkMode;
+  document.body.classList.toggle('dark-mode', state.darkMode);
+  btn.classList.toggle('active', state.darkMode);
+  btn.textContent = state.darkMode ? '☀ Light Mode' : '☾ Dark Mode';
+}
+
+function toggleMinimalist(btn) {
+  state.minimalistMode = !state.minimalistMode;
+  document.body.classList.toggle('minimalist', state.minimalistMode);
+  btn.classList.toggle('active', state.minimalistMode);
+}
+
+function toggleVerbose(btn) {
+  state.verboseMode = !state.verboseMode;
+  document.getElementById('verbose-log').style.display = state.verboseMode ? 'block' : 'none';
+  btn.classList.toggle('active', state.verboseMode);
+}
+
+function clearAll() {
+  ['C','F','K','Ra','Re'].forEach(s => document.getElementById(`inp-${s}`).value = '');
+  document.getElementById('multi-input').value = '';
+  document.getElementById('range-input').value = '';
+  document.getElementById('mass-input').value = '';
+  document.getElementById('delta-input').value = '';
+  document.getElementById('multi-result').innerHTML = '';
+  document.getElementById('heat-result').textContent = '';
+  document.getElementById('range-table-wrap').classList.remove('visible');
+  state.celsius = null;
+  state.lastValue = null;
+  clearOutputs();
+  showToast('All fields cleared');
+}
+
+function copyResult() {
+  if (state.celsius === null) { showToast('Nothing to copy!'); return; }
+  const prec = document.getElementById('precision').value || 4;
+  const json = JSON.stringify({
+    celsius: fromCelsius(state.celsius,'C',prec),
+    fahrenheit: fromCelsius(state.celsius,'F',prec),
+    kelvin: fromCelsius(state.celsius,'K',prec),
+    rankine: fromCelsius(state.celsius,'Ra',prec),
+    reaumur: fromCelsius(state.celsius,'Re',prec),
+    timestamp: new Date().toISOString()
+  }, null, 2);
+  copyToClipboard(json);
+  showToast('JSON result copied to clipboard!');
+}
+
+function shareResult() {
+  if (state.celsius === null) { showToast('Nothing to share!'); return; }
+  const prec = document.getElementById('precision').value || 4;
+  const text = `🌡 Temperature: ${fromCelsius(state.celsius,'C',prec)}°C = ${fromCelsius(state.celsius,'F',prec)}°F = ${fromCelsius(state.celsius,'K',prec)}K — via THERMIS`;
+  copyToClipboard(text);
+  showToast('Shareable text copied!');
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+function exportCSV() {
+  if (state.history.length === 0) { showToast('No history to export!'); return; }
+  const header = 'Display,Time,Date,Celsius\n';
+  const rows = state.history.map(h => `"${h.display}","${h.time}","${h.date}","${h.celsius}"`).join('\n');
+  const blob = new Blob([header + rows], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `thermis-history-${Date.now()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSV exported!');
+}
+
+function showDonate() {
+  showModal('☕', 'Buy Me a Coffee', 'This project was built with pure passion and vanilla JS. If THERMIS helped you, consider supporting the developer. Thank you! 🙏');
+}
+
+// === MODAL ===
+function showModal(icon, title, body) {
+  document.getElementById('modal-icon').textContent = icon;
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  document.getElementById('modal').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('visible');
+}
+
+// === TOAST ===
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// === WEB AUDIO BEEP ===
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 440;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    o.start(); o.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+// === SPOTLIGHT & CURSOR ===
+let mx = 0, my = 0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  document.getElementById('spotlight').style.left = mx + 'px';
+  document.getElementById('spotlight').style.top = my + 'px';
+});
+
+// === 3D CARD TILT ===
+const card = document.getElementById('converter-card');
+card.addEventListener('mousemove', e => {
+  const rect = card.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width - 0.5;
+  const y = (e.clientY - rect.top) / rect.height - 0.5;
+  card.style.transform = `perspective(1000px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) translateZ(4px)`;
+});
+card.addEventListener('mouseleave', () => {
+  card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
+});
+
+// === INTERSECTION OBSERVER ===
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.section').forEach(s => io.observe(s));
+
+// === LIVE CLOCK ===
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// === SESSION TIMER ===
+setInterval(() => {
+  const s = Math.floor((Date.now() - state.sessionStart) / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  document.getElementById('session-time').textContent = `Session: ${m}m ${sec}s`;
+  // Coffee reminder
+  if (s === 1800) showToast('☕ You\'ve been at it 30 minutes. Time for a coffee break!');
+}, 1000);
+
+// === WEATHER GRID ===
+function renderWeather() {
+  const grid = document.getElementById('weather-grid');
+  const prec = 1;
+  grid.innerHTML = WEATHER_DATA.map(w => {
+    const f = fromCelsius(w.C, 'F', prec);
+    return `
+      <div class="weather-tile">
+        <div class="weather-city">${w.city}</div>
+        <div class="weather-temp">${w.C}<span class="weather-unit">°C</span></div>
+        <div class="weather-unit">${f}°F</div>
+        <div class="weather-icon">${w.icon}</div>
+      </div>`;
+  }).join('');
+}
+
+// === COOKING GRID ===
+function renderCooking() {
+  const grid = document.getElementById('cooking-grid');
+  grid.innerHTML = COOKING_DATA.map(c => {
+    const f = Math.round(fromCelsius(c.C, 'F', 0));
+    return `<div class="cooking-item"><span class="cooking-label">${c.label}</span><span class="cooking-temp">${c.C}°C <span style="font-size:12px;color:var(--text-muted)">/ ${f}°F</span></span></div>`;
+  }).join('');
+}
+
+
+
+// === EXIT CONFIRMATION ===
+window.addEventListener('beforeunload', e => {
+  if (state.totalConversions > 0) {
+    e.preventDefault();
+    e.returnValue = `You've done ${state.totalConversions} conversions this session. Leave?`;
+  }
+});
+
+// === RESTORE ACHIEVEMENTS ===
+function restoreAchievements() {
+  for (const [k, v] of Object.entries(state.achievements)) {
+    if (v) {
+      const el = document.getElementById(k);
+      if (el) el.classList.add('earned');
+    }
+  }
+}
+
+// === INIT ===
+renderHistory();
+renderWeather();
+renderCooking();
+newQuiz();
+restoreAchievements();
+refreshProgress();
+updatePoints(0);
+document.getElementById('total-count').textContent = state.totalConversions;
+</script>
+</body>
+</html>
