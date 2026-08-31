@@ -1,0 +1,8 @@
+{
+  "C_Cpp.default.compilerPath": "C:/MinGW/bin/g++.exe",
+  "C_Cpp.default.intelliSenseMode": "windows-gcc-x86",
+  "clangd.arguments": [
+    "--query-driver=C:\\MinGW\\bin\\g++.exe",
+    "-extra-arg=-U__STRICT_ANSI__"
+  ]
+}

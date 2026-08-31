@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stackroom — Library Manager</title>
+<style>
+  :root {
+    --paper: #EFE9DA;
+    --card: #FBF8F0;
+    --ink: #26241F;
+    --ink-soft: #6B6558;
+    --shelf: #3D3226;
+    --accent: #7A8B5C;
+    --accent-dark: #5E6E44;
+    --line: #DAD2BC;
+    --warn: #B04A3A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header {
+    background: var(--shelf);
+    color: var(--paper);
+    padding: 26px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 6px solid var(--accent);
+  }
+  header h1 { margin: 0; font-size: 27px; font-weight: 500; }
+  header span { font-size: 13px; color: #C7C0AC; font-family: 'Courier New', monospace; }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    background: #E4DCC5;
+    padding: 0 40px;
+    border-bottom: 1px solid var(--line);
+  }
+  nav button {
+    padding: 14px 22px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    border-bottom: 3px solid transparent;
+  }
+  nav button.active {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .wrap { max-width: 1050px; margin: 0 auto; padding: 30px 24px 80px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .toolbar input[type="text"] {
+    flex: 1; min-width: 200px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-family: inherit; font-size: 14px;
+  }
+  .toolbar button.primary {
+    padding: 11px 20px;
+    border: none;
+    background: var(--accent-dark);
+    color: #fff;
+    font-family: inherit; font-size: 14px;
+    cursor: pointer;
+  }
+  .toolbar button.primary:hover { background: #4C5A36; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  th, td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  th {
+    background: #E4DCC5;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ink-soft);
+  }
+  tr:last-child td { border-bottom: none; }
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+  }
+  .tag.avail { background: #E3EAD9; color: var(--accent-dark); }
+  .tag.none { background: #F2E0DC; color: var(--warn); }
+  .tag.issued { background: #F2E0DC; color: var(--warn); }
+  .tag.returned { background: #E3EAD9; color: var(--accent-dark); }
+
+  .actions button {
+    border: 1px solid var(--line);
+    background: transparent;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-right: 6px;
+  }
+  .actions button.del:hover { border-color: var(--warn); color: var(--warn); }
+  .actions button.ret:hover { border-color: var(--accent-dark); color: var(--accent-dark); }
+
+  .empty { text-align: center; padding: 50px 0; color: var(--ink-soft); font-style: italic; }
+
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(38,36,31,0.55);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .overlay.show { display: flex; }
+  .modal { background: var(--card); width: 100%; max-width: 420px; padding: 28px; border-top: 5px solid var(--accent); }
+  .modal h2 { margin-top: 0; font-size: 20px; }
+  .modal label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin: 12px 0 5px; }
+  .modal input, .modal select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); font-family: inherit; font-size: 14px; background: #FFFEFA; }
+  .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-actions button { padding: 9px 18px; border: none; font-family: inherit; font-size: 14px; cursor: pointer; }
+  .modal-actions .save { background: var(--shelf); color: #fff; }
+  .modal-actions .cancel { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .fab {
+    position: fixed; bottom: 34px; right: 34px;
+    background: var(--accent-dark); color: #fff;
+    border: none; width: 56px; height: 56px; border-radius: 50%;
+    font-size: 26px; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .fab:hover { background: #4C5A36; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stackroom</h1>
+  <span id="statusLine">Library Manager</span>
+</header>
+
+<nav>
+  <button class="active" data-tab="books" onclick="switchTab('books')">Books</button>
+  <button data-tab="members" onclick="switchTab('members')">Members</button>
+  <button data-tab="issues" onclick="switchTab('issues')">Issue / Return</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- BOOKS TAB -->
+  <div class="tab active" id="tab-books">
+    <div class="toolbar">
+      <input type="text" id="bookSearch" placeholder="Search by title, author or category…">
+      <button class="primary" onclick="loadBooks(document.getElementById('bookSearch').value)">Search</button>
+    </div>
+    <table>
+      <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Copies</th><th>Actions</th></tr></thead>
+      <tbody id="booksBody"></tbody>
+    </table>
+  </div>
+
+  <!-- MEMBERS TAB -->
+  <div class="tab" id="tab-members">
+    <div class="toolbar">
+      <input type="text" id="memberSearch" placeholder="Search by name or email…">
+      <button class="primary" onclick="loadMembers(document.getElementById('memberSearch').value)">Search</button>
+    </div>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
+      <tbody id="membersBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ISSUES TAB -->
+  <div class="tab" id="tab-issues">
+    <div class="toolbar">
+      <select id="issueFilter" onchange="loadIssues(this.value)" style="padding:11px 14px;border:1px solid var(--line);background:var(--card);font-family:inherit;font-size:14px;">
+        <option value="">All records</option>
+        <option value="Issued">Currently issued</option>
+        <option value="Returned">Returned</option>
+      </select>
+    </div>
+    <table>
+      <thead><tr><th>Book</th><th>Member</th><th>Issued</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="issuesBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<button class="fab" id="fabBtn" onclick="openModal()">+</button>
+
+<!-- Book Modal -->
+<div class="overlay" id="bookOverlay">
+  <div class="modal">
+    <h2>New Book</h2>
+    <label>Title</label><input type="text" id="b_title">
+    <label>Author</label><input type="text" id="b_author">
+    <label>ISBN</label><input type="text" id="b_isbn">
+    <label>Category</label><input type="text" id="b_category" placeholder="Fiction, Technology…">
+    <label>Total Copies</label><input type="text" id="b_copies" value="1">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('bookOverlay')">Cancel</button>
+      <button class="save" onclick="saveBook()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Member Modal -->
+<div class="overlay" id="memberOverlay">
+  <div class="modal">
+    <h2>New Member</h2>
+    <label>Name</label><input type="text" id="m_name">
+    <label>Email</label><input type="text" id="m_email">
+    <label>Phone</label><input type="text" id="m_phone">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('memberOverlay')">Cancel</button>
+      <button class="save" onclick="saveMember()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Modal -->
+<div class="overlay" id="issueOverlay">
+  <div class="modal">
+    <h2>Issue a Book</h2>
+    <label>Book</label><select id="i_book"></select>
+    <label>Member</label><select id="i_member"></select>
+    <label>Issue Date</label><input type="date" id="i_issue_date">
+    <label>Due Date</label><input type="date" id="i_due_date">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('issueOverlay')">Cancel</button>
+      <button class="save" onclick="saveIssue()">Issue</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let currentTab = 'books';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === `tab-${tab}`));
+  if (tab === 'books') loadBooks();
+  if (tab === 'members') loadMembers();
+  if (tab === 'issues') loadIssues();
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- BOOKS ----------
+async function loadBooks(search = '') {
+  const url = search ? `${API}/books?search=${encodeURIComponent(search)}` : `${API}/books`;
+  const res = await fetch(url);
+  const books = await res.json();
+  const body = document.getElementById('booksBody');
+  if (books.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="empty">No books found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = books.map(b => `
+    <tr>
+      <td>${esc(b.title)}</td>
+      <td>${esc(b.author)}</td>
+      <td>${esc(b.category)}</td>
+      <td><span class="tag ${b.available_copies > 0 ? 'avail' : 'none'}">${b.available_copies}/${b.total_copies} available</span></td>
+      <td class="actions"><button class="del" onclick="deleteBook(${b.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function saveBook() {
+  const payload = {
+    title: document.getElementById('b_title').value.trim(),
+    author: document.getElementById('b_author').value.trim(),
+    isbn: document.getElementById('b_isbn').value.trim(),
+    category: document.getElementById('b_category').value.trim() || 'General',
+    total_copies: parseInt(document.getElementById('b_copies').value) || 1
+  };
+  if (!payload.title || !payload.author) { alert('Title and author are required.'); return; }
+  await fetch(`${API}/books`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  closeModal('bookOverlay');
+  loadBooks();
+}
+
+async function deleteBook(id) {
+  if (!confirm('Delete this book?')) return;
+  await fetch(`${API}/books/${id}`, { method: 'DELETE' });
+  loadBooks();
+}
+
+// ---------- MEMBERS ----------
+async function loadMembers(search = '') {
+  const url = search ? `${API}/members?search=${encodeURIComponent(search)}` : `${API}/members`;
+  const res = await fetch(url);
+  const members = await res.json();
+  const body = document.getElementById('membersBody');
+  if (members.length === 0) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">No members found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = members.map(m => `
+    <tr>
+      <td>${esc(m.name)}</td>
+      <td>${esc(m.email)}</td>
+      <td>${esc(m.phone)}</td>
+      <td class="actions"><button class="del" onclick="deleteMember(${m.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function saveMember() {
+  const payload = {
+    name: document.getElementById('m_name').value.trim(),
+    email: document.getElementById('m_email').value.trim(),
+    phone: document.getElementById('m_phone').value.trim()
+  };
+  if (!payload.name) { alert('Name is required.'); return; }
+  await fetch(`${API}/members`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  closeModal('memberOverlay');
+  loadMembers();
+}
+
+async function deleteMember(id) {
+  if (!confirm('Delete this member?')) return;
+  await fetch(`${API}/members/${id}`, { method: 'DELETE' });
+  loadMembers();
+}
+
+// ---------- ISSUES ----------
+async function loadIssues(status = '') {
+  const url = status ? `${API}/issues?status=${status}` : `${API}/issues`;
+  const res = await fetch(url);
+  const issues = await res.json();
+  const body = document.getElementById('issuesBody');
+  if (issues.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">No records found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = issues.map(i => `
+    <tr>
+      <td>${esc(i.book_title)}</td>
+      <td>${esc(i.member_name)}</td>
+      <td>${formatDate(i.issue_date)}</td>
+      <td>${formatDate(i.due_date)}</td>
+      <td><span class="tag ${i.status === 'Issued' ? 'issued' : 'returned'}">${i.status}</span></td>
+      <td class="actions">${i.status === 'Issued' ? `<button class="ret" onclick="returnBook(${i.id})">Mark Returned</button>` : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function returnBook(id) {
+  await fetch(`${API}/issues/${id}/return`, { method: 'PUT' });
+  loadIssues(document.getElementById('issueFilter').value);
+}
+
+async function populateIssueDropdowns() {
+  const [booksRes, membersRes] = await Promise.all([fetch(`${API}/books`), fetch(`${API}/members`)]);
+  const books = await booksRes.json();
+  const members = await membersRes.json();
+
+  document.getElementById('i_book').innerHTML = books
+    .filter(b => b.available_copies > 0)
+    .map(b => `<option value="${b.id}">${esc(b.title)} (${b.available_copies} available)</option>`)
+    .join('') || '<option disabled>No books available</option>';
+
+  document.getElementById('i_member').innerHTML = members
+    .map(m => `<option value="${m.id}">${esc(m.name)}</option>`)
+    .join('') || '<option disabled>No members yet</option>';
+}
+
+async function saveIssue() {
+  const payload = {
+    book_id: document.getElementById('i_book').value,
+    member_id: document.getElementById('i_member').value,
+    issue_date: document.getElementById('i_issue_date').value,
+    due_date: document.getElementById('i_due_date').value
+  };
+  if (!payload.book_id || !payload.member_id || !payload.issue_date || !payload.due_date) {
+    alert('All fields are required.'); return;
+  }
+  const res = await fetch(`${API}/issues`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Could not issue book.'); return; }
+  closeModal('issueOverlay');
+  loadIssues(document.getElementById('issueFilter').value);
+}
+
+// ---------- MODALS ----------
+function openModal() {
+  if (currentTab === 'books') {
+    document.getElementById('b_title').value = '';
+    document.getElementById('b_author').value = '';
+    document.getElementById('b_isbn').value = '';
+    document.getElementById('b_category').value = '';
+    document.getElementById('b_copies').value = '1';
+    document.getElementById('bookOverlay').classList.add('show');
+  } else if (currentTab === 'members') {
+    document.getElementById('m_name').value = '';
+    document.getElementById('m_email').value = '';
+    document.getElementById('m_phone').value = '';
+    document.getElementById('memberOverlay').classList.add('show');
+  } else if (currentTab === 'issues') {
+    populateIssueDropdowns();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('i_issue_date').value = today;
+    const due = new Date(); due.setDate(due.getDate() + 14);
+    document.getElementById('i_due_date').value = due.toISOString().split('T')[0];
+    document.getElementById('issueOverlay').classList.add('show');
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+loadBooks();
+</script>
+
+</body>
+</html>

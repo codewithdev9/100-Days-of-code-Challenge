@@ -1,0 +1,227 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--gap:10px}
+.root{padding:1.5rem 0;font-family:var(--font-sans)}
+.top-header{margin-bottom:1.5rem}
+.top-header h1{font-size:18px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.top-header p{font-size:13px;color:var(--color-text-secondary)}
+.stats{display:flex;gap:var(--gap);margin-bottom:1.25rem;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 14px;font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px}
+.stat strong{color:var(--color-text-primary);font-weight:500}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--gap)}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.1rem;cursor:pointer;transition:border-color .15s}
+.card:hover{border-color:var(--color-border-secondary)}
+.card.active{border-color:var(--color-border-primary)}
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:.65rem}
+.num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px}
+.card-title{font-size:13px;font-weight:500;color:var(--color-text-primary);line-height:1.4;margin-bottom:2px}
+.card-sub{font-size:11px;color:var(--color-text-secondary);line-height:1.4}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:.6rem}
+.tag{font-size:10px;padding:2px 7px;border-radius:var(--border-radius-md);font-weight:500}
+.detail{display:none;margin-top:.75rem;padding-top:.75rem;border-top:0.5px solid var(--color-border-tertiary)}
+.detail.open{display:block}
+.detail-row{display:flex;gap:8px;margin-bottom:5px;font-size:12px;line-height:1.5;align-items:flex-start}
+.detail-row i{font-size:13px;flex-shrink:0;margin-top:1px}
+.detail-label{color:var(--color-text-secondary);min-width:70px;flex-shrink:0}
+.detail-val{color:var(--color-text-primary)}
+.footer-note{margin-top:1rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem 1rem;font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1rem}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+</style>
+<div class="root">
+<h2 class="sr-only">UDEV Documentation — Master Plan for All 10 Advanced Prompts</h2>
+<div class="top-header">
+  <h1>UDEV Documentation — Master Prompt Plan</h1>
+  <p>10 prompts · 30–40 pages each · Complete industry-grade documentation series</p>
+</div>
+<div class="stats">
+  <div class="stat"><i class="ti ti-files" aria-hidden="true"></i> <strong>10</strong> chapters</div>
+  <div class="stat"><i class="ti ti-file-text" aria-hidden="true"></i> <strong>300–400</strong> total pages</div>
+  <div class="stat"><i class="ti ti-layers-difference" aria-hidden="true"></i> <strong>3</strong> dev phases covered</div>
+  <div class="stat"><i class="ti ti-robot" aria-hidden="true"></i> Claude / GPT-4 ready</div>
+</div>
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#185FA5"></div> Foundation</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#0F6E56"></div> Technical</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#854F0B"></div> Feature-Deep</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#993556"></div> AI & Advanced</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#533000" style="background:#533AB7"></div> Operations</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="footer-note">
+  <i class="ti ti-info-circle" aria-hidden="true"></i> Click any card to expand its full notes. Each prompt builds on the previous — generate them in order for best results. Prompts 1–3 = Foundation. Prompts 4–6 = Feature Depth. Prompts 7–8 = AI & Security. Prompts 9–10 = Ops & Scale.
+</div>
+</div>
+
+<script>
+const prompts=[
+{
+  n:1,
+  color:"#185FA5",bg:"#E6F1FB",
+  cat:"Foundation",
+  title:"Project Vision & Complete Overview",
+  sub:"Executive summary, problem statement, solution philosophy, personas, feature matrix, business model, roadmap, competitive analysis, risk analysis",
+  pages:"8–12 pages",
+  sections:["Executive Summary","Problem Statement (15+ problems)","Solution Overview & Feature Mapping","Vision, Mission & Product Values","User Personas (Student / Teacher / HOD / Admin)","Feature Matrix — All 20+ Modules with Phase & Priority","Business Model & SaaS Revenue Strategy","3-Phase Development Roadmap","Competitive Landscape","Risk Analysis & Mitigation"],
+  focus:"Why UDEV exists, what it does, who it serves, how it makes money, and what risks it faces.",
+  output:"Investor-grade chapter. Use as the homepage of your documentation site or README.",
+  ai:"Claude (best for long reasoning)",
+  deps:"None — this is the anchor document. All other prompts reference this."
+},
+{
+  n:2,
+  color:"#0F6E56",bg:"#E1F5EE",
+  cat:"Technical",
+  title:"System Architecture & Technical Design",
+  sub:"Full-stack architecture, database schema, folder structure, API design, auth flow, microservices vs monolith decision, infrastructure diagram",
+  pages:"8–10 pages",
+  sections:["Architecture Overview (Monolith MVP → Modular Scale)","Frontend Architecture — Next.js App Router, folder structure, state management","Backend Architecture — Express.js layers, middleware, route design","Database Design — PostgreSQL schema with all tables, relations, indexes","Authentication & Session Architecture — JWT + OTP + refresh tokens","API Design Principles — REST conventions, versioning, error standards","Realtime Layer — Socket.io namespaces and event architecture","Storage Architecture — Cloudinary integration & file handling","Deployment Architecture — Vercel + Railway + CI/CD pipeline","Scalability Strategy — caching, CDN, horizontal scaling plan"],
+  focus:"How the system is built. Every folder, every layer, every table, every API convention.",
+  output:"Engineering bible. Senior devs and new joiners both reference this.",
+  ai:"Claude (architecture reasoning)",
+  deps:"Requires Prompt 1 for module list and phase context."
+},
+{
+  n:3,
+  color:"#0F6E56",bg:"#E1F5EE",
+  cat:"Technical",
+  title:"Developer Setup, Workflow & Contribution Guide",
+  sub:"Local environment setup, env variables, git workflow, branching strategy, code standards, PR process, testing, CI/CD, onboarding",
+  pages:"6–8 pages",
+  sections:["Prerequisites & System Requirements","Repository Structure & Monorepo/Polyrepo decision","Step-by-step Local Setup (Frontend + Backend + DB)","Environment Variables — every variable documented with type and purpose","Git Branching Strategy — main/dev/feature/hotfix conventions","Commit Message Standards (Conventional Commits)","Pull Request Workflow & Code Review Process","Code Style Guide — ESLint, Prettier, naming conventions","Testing Strategy — unit, integration, E2E with tools","CI/CD Pipeline — GitHub Actions workflow documentation","How to Add a New Feature — end-to-end walkthrough","Deployment Process — staging vs production"],
+  focus:"A new developer joining the team should be able to set up and contribute within 2 hours.",
+  output:"Onboarding document. Paste into CONTRIBUTING.md and team wiki.",
+  ai:"Claude or GPT-4",
+  deps:"Requires Prompt 2 for architecture and folder structure."
+},
+{
+  n:4,
+  color:"#854F0B",bg:"#FAEEDA",
+  cat:"Feature-Deep",
+  title:"AI-Powered Attendance System — Deep Dive",
+  sub:"Complete technical + functional documentation of the flagship feature: OTP + GPS + live selfie + face verification + anti-proxy logic",
+  pages:"6–8 pages",
+  sections:["Feature Overview & Anti-Proxy Philosophy","User Flow — Teacher side (start lecture, OTP generate, monitor)","User Flow — Student side (OTP entry, selfie capture, GPS check, result)","Technical Implementation — OTP generation, expiry, validation logic","GPS Geofencing — radius config, accuracy thresholds, edge cases","Live Selfie & Liveness Detection — AI model choice, spoofing prevention","Face Verification — model pipeline, confidence threshold, fallback logic","Nearby Classmate Detection — proximity algorithm","Attendance State Machine — pending / confirmed / rejected / absent / late","PDF Export & Teacher Dashboard — attendance records, analytics","Edge Cases & Failure Handling — no GPS, poor lighting, camera denied","MVP Simplification — what to defer to Phase 2"],
+  focus:"Every technical and UX decision for the most critical feature of UDEV.",
+  output:"Feature spec for the dev team + QA team. Also usable as investor demo explainer.",
+  ai:"Claude (technical + UX reasoning)",
+  deps:"Requires Prompts 1 & 2 for tech stack and architecture context."
+},
+{
+  n:5,
+  color:"#854F0B",bg:"#FAEEDA",
+  cat:"Feature-Deep",
+  title:"Community, LMS, Notes & Communication Modules",
+  sub:"Section communities, teacher-student Q&A, notes hub, AI summaries, announcements engine, digital forms, timetable system",
+  pages:"7–9 pages",
+  sections:["Community Hub — section-wise groups, moderation, anonymous discussions","Teacher-Student Q&A System — doubt posting, AI fallback, 24–48h reply SLA","Notes Hub — upload flow, subject tagging, AI summarization, seniors archive","Announcement Engine — priority levels, department targeting, push notifications","Smart Timetable — data model, real-time update triggers, absence notifications","Digital Forms — leave application, bonafide, event registration workflows","Lost & Found System — photo upload, AI object matching, community alerts","Freshers Module — seasonal unlock logic, HOD control, payment integration","Notification Architecture — priority queue, delivery channels, user preferences"],
+  focus:"Everything that makes UDEV a daily-use platform beyond attendance.",
+  output:"Complete feature spec for 9 modules. Backend devs, frontend devs, and product team all need this.",
+  ai:"Claude",
+  deps:"Requires Prompts 1–3."
+},
+{
+  n:6,
+  color:"#854F0B",bg:"#FAEEDA",
+  cat:"Feature-Deep",
+  title:"Coding Battle Arena & Gamification System",
+  sub:"AI-judged coding battles, leaderboard, XP/star system, campus reputation, placement hub, career roadmaps",
+  pages:"5–7 pages",
+  sections:["Coding Battle Arena — challenge types, 1v1 and group modes, language support","AI Judge Pipeline — code submission → evaluation → complexity analysis → winner logic","Funny Roast/Reaction System — AI-generated responses, tone guardrails","Leaderboard & Ranking System — XP calculation, star tiers, position logic","Campus Reputation System — badges, community helper rank, AI mentor badge","AI Suggestion Ranking — how community posts surface based on reputation score","Placement Preparation Hub — resume builder, AI mock interview, DSA roadmap, company prep","AI Career Analyzer — interest mapping → skill roadmap generation","Daily Challenges & Streak System — engagement mechanics, reward logic","Gamification Anti-abuse Rules — alt accounts, farming prevention"],
+  focus:"The engagement engine that turns UDEV from a utility into an addictive platform.",
+  output:"Game design + technical spec. Critical for student adoption strategy.",
+  ai:"Claude (game logic + AI reasoning)",
+  deps:"Requires Prompts 1, 2, and 4 for platform context."
+},
+{
+  n:7,
+  color:"#993556",bg:"#FBEAF0",
+  cat:"AI & Advanced",
+  title:"AI Systems, Integrations & Intelligent Features",
+  sub:"All AI subsystems: chatbot, doubt solver, wellness assistant, content moderation, analytics engine, AI notes generator, exam predictor",
+  pages:"7–9 pages",
+  sections:["AI Architecture Overview — which AI handles which module","AI Chatbot — system prompt design, context management, fallback handling","AI Doubt Solver — subject-aware answering, teacher availability check, escalation","AI Content Moderation — complaint verification, community post filtering","AI Notes Generator — lecture upload → transcript → structured notes pipeline","AI Wellness Assistant — anonymous vent chat, mood tracking, escalation protocol","AI Classroom Analytics — weak student detection, attendance trends, performance graphs","AI Lost & Found — image upload → object detection → community match alert","AI Exam Predictor — PYQ analysis, topic weighting, revision planner generation","OpenAI + Gemini + Claude API Integration — which model for which task, cost optimization","Prompt Engineering Standards — system prompts, guardrails, token budgeting","AI Safety & Hallucination Mitigation"],
+  focus:"Every AI feature documented with model choice, prompt strategy, and failure handling.",
+  output:"AI engineering spec. Critical for Phase 2 development and investor AI demos.",
+  ai:"Claude (meta — AI documenting AI)",
+  deps:"Requires Prompts 1–3 for architecture foundation."
+},
+{
+  n:8,
+  color:"#993556",bg:"#FBEAF0",
+  cat:"AI & Advanced",
+  title:"Security, Privacy & Complaint System Architecture",
+  sub:"Anonymous complaint system, safety reporting, data privacy, auth security, anti-abuse, GDPR/PDPB compliance, admin escalation",
+  pages:"5–7 pages",
+  sections:["Security Architecture Overview — threat model for a college platform","Authentication Security — JWT hardening, OTP brute-force prevention, session management","Data Privacy Architecture — what data is collected, stored, retained, deleted","Anonymous Complaint System — identity masking, evidence upload, tracking ID generation","Complaint Escalation Flow — student → HOD → admin, SLA, action tracking","Emergency Alert System — ragging/violence/medical — immediate escalation logic","Evidence Handling — video/photo storage, chain of custody, HOD access control","Anti-Spoofing & Anti-Abuse — attendance fraud, fake complaints, account farming","PDPB/GDPR Alignment — Indian data protection compliance checklist","Vulnerability Checklist — SQL injection, XSS, IDOR, rate limiting, input validation","Admin Access Control — role-based permissions matrix (Student/Teacher/HOD/Admin/SuperAdmin)"],
+  focus:"The trust and safety layer. Without this, colleges will not adopt the platform.",
+  output:"Security spec + compliance doc. Required before any college pilot launch.",
+  ai:"Claude (security reasoning)",
+  deps:"Requires Prompts 2 & 3 for system and auth architecture."
+},
+{
+  n:9,
+  color:"#534AB7",bg:"#EEEDFE",
+  cat:"Operations",
+  title:"Admin Dashboard, Analytics & Operations Manual",
+  sub:"HOD and admin dashboards, analytics engine, multi-tenant architecture, college onboarding, SaaS operations, support system",
+  pages:"6–8 pages",
+  sections:["Admin Dashboard — modules, widgets, role-based views","HOD Dashboard — department analytics, complaint queue, teacher management","Super Admin (SaaS) Panel — college management, billing, feature flags","Analytics Engine — attendance trends, student performance, engagement metrics","Multi-Tenant Architecture — data isolation, schema-per-tenant vs row-level security","College Onboarding Flow — signup → setup → go-live checklist","Feature Flag System — phase-gated rollouts, A/B testing","SaaS Billing Integration — subscription management, plan upgrades, payment gateway","Support & Escalation System — in-app support, ticket system, SLA","Operations Runbook — incident response, backup strategy, monitoring setup","Key Metrics & KPIs — what success looks like for each user type"],
+  focus:"How UDEV is managed, monitored, and scaled as a product and a business.",
+  output:"Ops manual for the founding team + documentation for future CTO hire.",
+  ai:"Claude",
+  deps:"Requires Prompts 1–3 and 8 for full context."
+},
+{
+  n:10,
+  color:"#534AB7",bg:"#EEEDFE",
+  cat:"Operations",
+  title:"API Reference, Glossary, Appendix & Future Roadmap",
+  sub:"Full API endpoint documentation, database glossary, environment variable reference, future crazy features, scaling vision, investor summary",
+  pages:"6–8 pages",
+  sections:["Complete REST API Reference — all endpoints with method, path, auth, request/response schemas","WebSocket Event Reference — all Socket.io events, payloads, namespaces","Environment Variables Master Reference — every .env key with type, required flag, example","Database Tables Glossary — every table, column, data type, constraint, relation","Error Code Registry — all application error codes with meaning and resolution","Glossary of Terms — UDEV-specific terminology used across all documentation","Future Features Roadmap — AI classroom detection, voice assistant, smart campus map, CCTV alerts, ERP integration","Scaling Vision — from 1 college to 1000 colleges, infrastructure evolution","Multi-College Federation — how UDEV connects colleges in Phase 4","Investor One-Pager Summary — condensed version of all 10 chapters for pitch decks","Open Source / Licensing Considerations — if/when to open source parts of the platform"],
+  focus:"The technical reference layer and the long-term vision. Completes the full documentation suite.",
+  output:"API docs + glossary + pitch-ready summary. The final chapter that ties everything together.",
+  ai:"Claude (best for long structured reference docs)",
+  deps:"Requires all previous 9 prompts as context."
+}
+];
+
+const grid=document.getElementById('grid');
+prompts.forEach(p=>{
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`
+    <div class="card-top">
+      <div class="num" style="background:${p.bg};color:${p.color}">${p.n}</div>
+      <div>
+        <div class="card-title">${p.title}</div>
+        <div class="card-sub">${p.sub}</div>
+      </div>
+    </div>
+    <div class="tags">
+      <span class="tag" style="background:${p.bg};color:${p.color}">${p.cat}</span>
+      <span class="tag" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">${p.pages}</span>
+    </div>
+    <div class="detail" id="d${p.n}">
+      <div class="detail-row"><i class="ti ti-list-check" aria-hidden="true" style="color:var(--color-text-secondary)"></i><span class="detail-label">Sections</span><span class="detail-val">${p.sections.join(' · ')}</span></div>
+      <div class="detail-row" style="margin-top:6px"><i class="ti ti-target" aria-hidden="true" style="color:var(--color-text-secondary)"></i><span class="detail-label">Core focus</span><span class="detail-val">${p.focus}</span></div>
+      <div class="detail-row" style="margin-top:6px"><i class="ti ti-file-export" aria-hidden="true" style="color:var(--color-text-secondary)"></i><span class="detail-label">Output use</span><span class="detail-val">${p.output}</span></div>
+      <div class="detail-row" style="margin-top:6px"><i class="ti ti-robot" aria-hidden="true" style="color:var(--color-text-secondary)"></i><span class="detail-label">Best AI</span><span class="detail-val">${p.ai}</span></div>
+      <div class="detail-row" style="margin-top:6px"><i class="ti ti-arrow-up-right" aria-hidden="true" style="color:var(--color-text-secondary)"></i><span class="detail-label">Depends on</span><span class="detail-val">${p.deps}</span></div>
+    </div>
+  `;
+  card.addEventListener('click',()=>{
+    const d=document.getElementById('d'+p.n);
+    const isOpen=d.classList.contains('open');
+    document.querySelectorAll('.detail').forEach(x=>x.classList.remove('open'));
+    document.querySelectorAll('.card').forEach(x=>x.classList.remove('active'));
+    if(!isOpen){d.classList.add('open');card.classList.add('active');}
+  });
+  grid.appendChild(card);
+});
+</script>

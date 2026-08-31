@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BMI Gauge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F1A17;
+    --panel: #16241F;
+    --panel-2: #1D2E27;
+    --line: #2A3D34;
+    --ink: #EDE8DE;
+    --muted: #7C9186;
+    --amber: #E8A33D;
+    --blue: #6FA8DC;
+    --green: #7FBF7F;
+    --red: #D96C4A;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(232,163,61,0.06), transparent 40%),
+      var(--bg);
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    padding:32px 16px;
+  }
+
+  .instrument{
+    width:100%;
+    max-width:460px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px 26px 26px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  .eyebrow{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:22px;
+  }
+  .eyebrow .label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .eyebrow .unit-toggle{
+    display:flex;
+    gap:2px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:2px;
+  }
+  .unit-toggle button{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.05em;
+    padding:5px 10px;
+    border:none;
+    border-radius:5px;
+    background:transparent;
+    color:var(--muted);
+    cursor:pointer;
+    transition:.15s ease;
+  }
+  .unit-toggle button.active{
+    background:var(--amber);
+    color:#1A1305;
+    font-weight:700;
+  }
+
+  .fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:8px;
+  }
+  .field{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px 13px;
+  }
+  .field label{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .field .row{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+  }
+  .field input{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    font-size:20px;
+    font-weight:600;
+    -moz-appearance:textfield;
+  }
+  .field input::-webkit-outer-spin-button,
+  .field input::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+  .field .suffix{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .field.wide{ grid-column: 1 / -1; }
+  .field-pair{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .readout{
+    margin-top:22px;
+    padding-top:22px;
+    border-top:1px dashed var(--line);
+    text-align:center;
+  }
+  .readout .bmi-value{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:64px;
+    font-weight:700;
+    line-height:1;
+    letter-spacing:-0.02em;
+    color:var(--amber);
+    transition: color .25s ease;
+  }
+  .readout .bmi-caption{
+    margin-top:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .readout .bmi-status{
+    display:inline-block;
+    margin-top:10px;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    font-weight:600;
+    padding:5px 14px;
+    border-radius:999px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+  }
+
+  /* Calibrated scale gauge */
+  .gauge{
+    margin-top:24px;
+    position:relative;
+  }
+  .gauge-track{
+    position:relative;
+    height:10px;
+    border-radius:6px;
+    overflow:visible;
+    display:flex;
+  }
+  .gauge-seg{
+    height:100%;
+  }
+  .gauge-seg:first-child{ border-radius:6px 0 0 6px; }
+  .gauge-seg:last-child{ border-radius:0 6px 6px 0; }
+
+  .gauge-needle{
+    position:absolute;
+    top:-5px;
+    width:2px;
+    height:20px;
+    background:var(--ink);
+    transform:translateX(-1px);
+    transition:left .35s cubic-bezier(.4,1.4,.6,1);
+  }
+  .gauge-needle::after{
+    content:'';
+    position:absolute;
+    top:-6px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0; height:0;
+    border-left:5px solid transparent;
+    border-right:5px solid transparent;
+    border-bottom:6px solid var(--ink);
+  }
+
+  .gauge-labels{
+    display:flex;
+    justify-content:space-between;
+    margin-top:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    color:var(--muted);
+  }
+  .gauge-ranges{
+    display:flex;
+    justify-content:space-between;
+    margin-top:4px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:9px;
+    letter-spacing:0.04em;
+    color:var(--muted);
+  }
+  .gauge-ranges span{ flex:1; text-align:center; }
+  .gauge-ranges span:first-child{ text-align:left; }
+  .gauge-ranges span:last-child{ text-align:right; }
+
+  .footnote{
+    margin-top:20px;
+    font-size:11px;
+    line-height:1.5;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  @media (max-width:380px){
+    .readout .bmi-value{ font-size:52px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="instrument">
+  <div class="eyebrow">
+    <span class="label">Body Mass Index // Reading</span>
+    <div class="unit-toggle" id="unitToggle">
+      <button type="button" data-unit="metric" class="active">METRIC</button>
+      <button type="button" data-unit="imperial">IMPERIAL</button>
+    </div>
+  </div>
+
+  <div class="fields">
+    <div class="field" id="heightField">
+      <label>Height</label>
+      <div class="row">
+        <input type="number" id="heightCm" placeholder="170" min="0" inputmode="decimal">
+        <span class="suffix">cm</span>
+      </div>
+    </div>
+    <div class="field" id="weightField">
+      <label>Weight</label>
+      <div class="row">
+        <input type="number" id="weight" placeholder="65" min="0" inputmode="decimal">
+        <span class="suffix" id="weightSuffix">kg</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="field wide" id="imperialHeightField" style="display:none; margin-top:12px;">
+    <label>Height</label>
+    <div class="field-pair">
+      <div class="row">
+        <input type="number" id="heightFt" placeholder="5" min="0" inputmode="decimal">
+        <span class="suffix">ft</span>
+      </div>
+      <div class="row">
+        <input type="number" id="heightIn" placeholder="7" min="0" inputmode="decimal">
+        <span class="suffix">in</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="readout">
+    <div class="bmi-value" id="bmiValue">—</div>
+    <div class="bmi-caption">Kg / M²</div>
+    <div class="bmi-status" id="bmiStatus" style="color:var(--muted);">Enter your details</div>
+
+    <div class="gauge">
+      <div class="gauge-track">
+        <div class="gauge-seg" style="width:18.75%; background:var(--blue);"></div>
+        <div class="gauge-seg" style="width:22.9%; background:var(--green);"></div>
+        <div class="gauge-seg" style="width:20.8%; background:var(--amber);"></div>
+        <div class="gauge-seg" style="width:37.5%; background:var(--red);"></div>
+        <div class="gauge-needle" id="gaugeNeedle" style="left:0%;"></div>
+      </div>
+      <div class="gauge-ranges">
+        <span>Under</span>
+        <span>Normal</span>
+        <span>Over</span>
+        <span>Obese</span>
+      </div>
+      <div class="gauge-labels">
+        <span>15</span>
+        <span>18.5</span>
+        <span>25</span>
+        <span>30</span>
+        <span>40+</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">Standard adult BMI reference. Not a substitute for medical advice.</div>
+</div>
+
+<script>
+  const state = { unit: 'metric' };
+
+  const unitToggle = document.getElementById('unitToggle');
+  const heightField = document.getElementById('heightField');
+  const imperialHeightField = document.getElementById('imperialHeightField');
+  const weightSuffix = document.getElementById('weightSuffix');
+
+  const heightCm = document.getElementById('heightCm');
+  const heightFt = document.getElementById('heightFt');
+  const heightIn = document.getElementById('heightIn');
+  const weight = document.getElementById('weight');
+
+  const bmiValue = document.getElementById('bmiValue');
+  const bmiStatus = document.getElementById('bmiStatus');
+  const gaugeNeedle = document.getElementById('gaugeNeedle');
+
+  const CATS = [
+    { max: 18.5, name: 'Underweight', color: 'var(--blue)' },
+    { max: 25,   name: 'Normal',      color: 'var(--green)' },
+    { max: 30,   name: 'Overweight',  color: 'var(--amber)' },
+    { max: Infinity, name: 'Obese',   color: 'var(--red)' }
+  ];
+
+  const GAUGE_MIN = 15;
+  const GAUGE_MAX = 40;
+
+  unitToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    state.unit = btn.dataset.unit;
+    [...unitToggle.children].forEach(b => b.classList.toggle('active', b === btn));
+
+    if (state.unit === 'imperial') {
+      heightField.style.display = 'none';
+      imperialHeightField.style.display = 'block';
+      weightSuffix.textContent = 'lb';
+    } else {
+      heightField.style.display = 'block';
+      imperialHeightField.style.display = 'none';
+      weightSuffix.textContent = 'kg';
+    }
+    calculate();
+  });
+
+  function calculate() {
+    let heightMeters, weightKg;
+
+    if (state.unit === 'metric') {
+      const cm = parseFloat(heightCm.value);
+      const kg = parseFloat(weight.value);
+      if (!cm || !kg || cm <= 0 || kg <= 0) return reset();
+      heightMeters = cm / 100;
+      weightKg = kg;
+    } else {
+      const ft = parseFloat(heightFt.value) || 0;
+      const inch = parseFloat(heightIn.value) || 0;
+      const lb = parseFloat(weight.value);
+      const totalInches = ft * 12 + inch;
+      if (!totalInches || !lb || lb <= 0) return reset();
+      heightMeters = totalInches * 0.0254;
+      weightKg = lb * 0.453592;
+    }
+
+    const bmi = weightKg / (heightMeters * heightMeters);
+    if (!isFinite(bmi) || bmi <= 0 || bmi > 100) return reset();
+
+    const cat = CATS.find(c => bmi < c.max);
+
+    bmiValue.textContent = bmi.toFixed(1);
+    bmiValue.style.color = cat.color;
+    bmiStatus.textContent = cat.name;
+    bmiStatus.style.color = cat.color;
+    bmiStatus.style.borderColor = cat.color;
+
+    const clamped = Math.min(Math.max(bmi, GAUGE_MIN), GAUGE_MAX);
+    const pct = ((clamped - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN)) * 100;
+    gaugeNeedle.style.left = pct + '%';
+  }
+
+  function reset() {
+    bmiValue.textContent = '—';
+    bmiValue.style.color = 'var(--amber)';
+    bmiStatus.textContent = 'Enter your details';
+    bmiStatus.style.color = 'var(--muted)';
+    bmiStatus.style.borderColor = 'var(--line)';
+    gaugeNeedle.style.left = '0%';
+  }
+
+  [heightCm, heightFt, heightIn, weight].forEach(el => {
+    el.addEventListener('input', calculate);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman — Chalkboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --board: #1f3d33;
+            --board-dark: #17302a;
+            --chalk: #eef2ea;
+            --chalk-dim: #c9d3c8;
+            --chalk-yellow: #e8c468;
+            --chalk-pink: #e07a91;
+            --frame: #6b4a34;
+            --frame-dark: #4f3626;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--board-dark);
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(255, 255, 255, 0.03), transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.025), transparent 55%);
+            font-family: 'Space Mono', monospace;
+            color: var(--chalk);
+            padding: 24px;
+        }
+
+        .frame {
+            width: 100%;
+            max-width: 640px;
+            background: var(--board);
+            border: 14px solid var(--frame);
+            border-radius: 6px;
+            box-shadow:
+                0 0 0 3px var(--frame-dark) inset,
+                0 30px 60px rgba(0, 0, 0, 0.5);
+            padding: 32px 28px 26px;
+            position: relative;
+        }
+
+        .frame::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border: 1px dashed rgba(238, 242, 234, 0.08);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-family: 'Caveat', cursive;
+            font-weight: 700;
+            font-size: 2.6rem;
+            text-align: center;
+            margin: 0 0 4px;
+            color: var(--chalk);
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--chalk-dim);
+            letter-spacing: 1.5px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .stage {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .gallows {
+            flex: 0 0 150px;
+            height: 170px;
+        }
+
+        .gallows svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .gallows path,
+        .gallows line,
+        .gallows circle {
+            fill: none;
+            stroke: var(--chalk);
+            stroke-width: 3;
+            stroke-linecap: round;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .status-box {
+            flex: 1;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--chalk-dim);
+            border-left: 2px dashed rgba(238, 242, 234, 0.2);
+            padding-left: 16px;
+        }
+
+        .status-box .tries {
+            color: var(--chalk-yellow);
+            font-weight: 700;
+        }
+
+        .word-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 26px 0 24px;
+        }
+
+        .letter-slot {
+            width: 34px;
+            text-align: center;
+            font-family: 'Caveat', cursive;
+            font-size: 2rem;
+            font-weight: 700;
+            border-bottom: 3px solid var(--chalk-dim);
+            padding-bottom: 2px;
+            min-height: 42px;
+        }
+
+        .letter-slot.revealed {
+            color: var(--chalk-yellow);
+            animation: chalkIn 0.25s ease;
+        }
+
+        @keyframes chalkIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .key {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 9px 0;
+            background: transparent;
+            border: 1.5px solid rgba(238, 242, 234, 0.35);
+            border-radius: 3px;
+            color: var(--chalk);
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease;
+        }
+
+        .key:hover:not(:disabled) {
+            background: rgba(238, 242, 234, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .key:disabled {
+            cursor: not-allowed;
+            opacity: 0.35;
+        }
+
+        .key.correct {
+            border-color: var(--chalk-yellow);
+            color: var(--chalk-yellow);
+            opacity: 0.55;
+        }
+
+        .key.wrong {
+            border-color: var(--chalk-pink);
+            color: var(--chalk-pink);
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .footer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--chalk-dim);
+            opacity: 0.75;
+        }
+
+        .new-game {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.78rem;
+            background: transparent;
+            border: 1.5px solid var(--chalk-yellow);
+            color: var(--chalk-yellow);
+            padding: 9px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: background 0.15s ease;
+        }
+
+        .new-game:hover {
+            background: rgba(232, 196, 104, 0.12);
+        }
+
+        .message {
+            text-align: center;
+            font-family: 'Caveat', cursive;
+            font-size: 1.7rem;
+            font-weight: 700;
+            min-height: 34px;
+            margin-bottom: 4px;
+        }
+
+        .message.win {
+            color: var(--chalk-yellow);
+        }
+
+        .message.lose {
+            color: var(--chalk-pink);
+        }
+
+        @media (max-width: 480px) {
+            .frame {
+                padding: 24px 16px 20px;
+                border-width: 10px;
+            }
+
+            .stage {
+                flex-direction: column;
+            }
+
+            .status-box {
+                border-left: none;
+                border-top: 2px dashed rgba(238, 242, 234, 0.2);
+                padding-left: 0;
+                padding-top: 12px;
+            }
+
+            .keyboard {
+                grid-template-columns: repeat(7, 1fr);
+            }
+
+            .letter-slot {
+                width: 26px;
+                font-size: 1.6rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="frame">
+        <h1>Hangman</h1>
+        <div class="subtitle">guess the word before the chalk runs out</div>
+
+        <div class="message" id="message"></div>
+
+        <div class="stage">
+            <div class="gallows">
+                <svg viewBox="0 0 150 170" id="gallowsSvg">
+                    <!-- base + pole always visible -->
+                    <line x1="10" y1="160" x2="90" y2="160" style="opacity:1" />
+                    <line x1="30" y1="160" x2="30" y2="15" style="opacity:1" />
+                    <line x1="30" y1="15" x2="100" y2="15" style="opacity:1" />
+                    <line x1="100" y1="15" x2="100" y2="35" style="opacity:1" />
+                    <!-- parts revealed on wrong guesses -->
+                    <circle id="part-head" cx="100" cy="50" r="15" />
+                    <line id="part-body" x1="100" y1="65" x2="100" y2="105" />
+                    <line id="part-arml" x1="100" y1="75" x2="82" y2="95" />
+                    <line id="part-armr" x1="100" y1="75" x2="118" y2="95" />
+                    <line id="part-legl" x1="100" y1="105" x2="85" y2="130" />
+                    <line id="part-legr" x1="100" y1="105" x2="115" y2="130" />
+                </svg>
+            </div>
+            <div class="status-box">
+                <div>Wrong guesses: <span class="tries" id="triesLeft">0 / 6</span></div>
+                <div style="margin-top:6px;">Category: <span id="category">Coding &amp; Tech</span></div>
+            </div>
+        </div>
+
+        <div class="word-row" id="wordRow"></div>
+
+        <div class="keyboard" id="keyboard"></div>
+
+        <div class="footer-row">
+            <div class="hint">click a letter, or just type on your keyboard</div>
+            <button class="new-game" id="newGameBtn">NEW WORD</button>
+        </div>
+    </div>
+
+    <script>
+        const WORDS = [
+            "programming", "hangman", "computer", "developer",
+            "keyboard", "function", "variable", "algorithm",
+            "compiler", "structure", "javascript", "database",
+            "terminal", "debugging", "framework"
+        ];
+
+        const MAX_WRONG = 6;
+        const PART_ORDER = ["part-head", "part-body", "part-arml", "part-armr", "part-legl", "part-legr"];
+
+        let word = "";
+        let guessed = new Set();
+        let wrongCount = 0;
+        let gameOver = false;
+
+        const wordRow = document.getElementById("wordRow");
+        const keyboard = document.getElementById("keyboard");
+        const triesLeft = document.getElementById("triesLeft");
+        const message = document.getElementById("message");
+        const newGameBtn = document.getElementById("newGameBtn");
+
+        function pickWord() {
+            return WORDS[Math.floor(Math.random() * WORDS.length)];
+        }
+
+        function buildKeyboard() {
+            keyboard.innerHTML = "";
+            for (let c = 97; c <= 122; c++) {
+                const letter = String.fromCharCode(c);
+                const btn = document.createElement("button");
+                btn.className = "key";
+                btn.textContent = letter;
+                btn.dataset.letter = letter;
+                btn.addEventListener("click", () => handleGuess(letter));
+                keyboard.appendChild(btn);
+            }
+        }
+
+        function buildWordRow() {
+            wordRow.innerHTML = "";
+            for (const ch of word) {
+                const slot = document.createElement("div");
+                slot.className = "letter-slot";
+                slot.dataset.letter = ch;
+                wordRow.appendChild(slot);
+            }
+        }
+
+        function resetGallows() {
+            PART_ORDER.forEach(id => {
+                document.getElementById(id).style.opacity = "0";
+            });
+        }
+
+        function revealPart(index) {
+            const id = PART_ORDER[index];
+            if (id) document.getElementById(id).style.opacity = "1";
+        }
+
+        function updateWordRow() {
+            let allRevealed = true;
+            [...wordRow.children].forEach(slot => {
+                const letter = slot.dataset.letter;
+                if (guessed.has(letter)) {
+                    slot.textContent = letter;
+                    slot.classList.add("revealed");
+                } else {
+                    slot.textContent = "";
+                    allRevealed = false;
+                }
+            });
+            return allRevealed;
+        }
+
+        function handleGuess(letter) {
+            if (gameOver || guessed.has(letter)) return;
+            guessed.add(letter);
+
+            const btn = keyboard.querySelector(`[data-letter="${letter}"]`);
+            const isCorrect = word.includes(letter);
+
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add(isCorrect ? "correct" : "wrong");
+            }
+
+            if (!isCorrect) {
+                revealPart(wrongCount);
+                wrongCount++;
+                triesLeft.textContent = `${wrongCount} / ${MAX_WRONG}`;
+            }
+
+            const won = updateWordRow();
+
+            if (won) {
+                endGame(true);
+            } else if (wrongCount >= MAX_WRONG) {
+                updateWordRow();
+                revealAllLetters();
+                endGame(false);
+            }
+        }
+
+        function revealAllLetters() {
+            [...wordRow.children].forEach(slot => {
+                slot.textContent = slot.dataset.letter;
+            });
+        }
+
+        function endGame(won) {
+            gameOver = true;
+            message.textContent = won ? "You saved them! 🎉" : `Out of chalk — it was "${word}"`;
+            message.className = "message " + (won ? "win" : "lose");
+            [...keyboard.children].forEach(btn => btn.disabled = true);
+        }
+
+        function newGame() {
+            word = pickWord();
+            guessed = new Set();
+            wrongCount = 0;
+            gameOver = false;
+            triesLeft.textContent = `0 / ${MAX_WRONG}`;
+            message.textContent = "";
+            message.className = "message";
+            resetGallows();
+            buildKeyboard();
+            buildWordRow();
+            updateWordRow();
+        }
+
+        document.addEventListener("keydown", (e) => {
+            const letter = e.key.toLowerCase();
+            if (letter.length === 1 && letter >= "a" && letter <= "z") {
+                handleGuess(letter);
+            }
+        });
+
+        newGameBtn.addEventListener("click", newGame);
+
+        newGame();
+    </script>
+
+</body>
+
+</html>

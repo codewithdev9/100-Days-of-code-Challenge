@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        :root {
+            --bg: #14161c;
+            --panel: #1c1f28;
+            --line: #2c303c;
+            --paper: #eae6da;
+            --x-color: #ff8552;
+            --o-color: #4cc9f0;
+            --win: #ffd166;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 15%, rgba(255, 133, 82, 0.06), transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(76, 201, 240, 0.06), transparent 40%);
+            color: var(--paper);
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .arena {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 22px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            color: var(--x-color);
+        }
+
+        .status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #9a9fae;
+            margin-top: 4px;
+            min-height: 1.2em;
+        }
+
+        .status.win {
+            color: var(--win);
+        }
+
+        .tally {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            text-align: right;
+            color: #9a9fae;
+            line-height: 1.6;
+        }
+
+        .tally b.x {
+            color: var(--x-color);
+        }
+
+        .tally b.o {
+            color: var(--o-color);
+        }
+
+        .board {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3px;
+            background: var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+        }
+
+        .cell {
+            background: var(--panel);
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.15s ease;
+        }
+
+        .cell:hover:not(.filled) {
+            background: #23273240;
+        }
+
+        .cell svg {
+            width: 46%;
+            height: 46%;
+            overflow: visible;
+        }
+
+        .cell svg path,
+        .cell svg circle {
+            fill: none;
+            stroke-width: 9;
+            stroke-linecap: round;
+            stroke-dasharray: 140;
+            stroke-dashoffset: 140;
+            animation: draw 0.35s ease forwards;
+        }
+
+        .cell .mark-x path {
+            stroke: var(--x-color);
+        }
+
+        .cell .mark-o circle {
+            stroke: var(--o-color);
+        }
+
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .cell.winning {
+            background: rgba(255, 209, 102, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .turn-indicator {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #9a9fae;
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--x-color);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .dot.o-turn {
+            background: var(--o-color);
+        }
+
+        button.reset {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--paper);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        button.reset:hover {
+            border-color: #4a4f60;
+            background: var(--panel);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .cell svg path,
+            .cell svg circle {
+                animation: none;
+                stroke-dashoffset: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="arena">
+        <div class="scoreboard">
+            <div>
+                <h1>Tic <span>Tac</span> Toe</h1>
+                <div class="status" id="status">Player X's turn</div>
+            </div>
+            <div class="tally">
+                X wins: <b class="x" id="xWins">0</b><br>
+                O wins: <b class="o" id="oWins">0</b><br>
+                Draws: <span id="draws">0</span>
+            </div>
+        </div>
+
+        <div class="board" id="board"></div>
+
+        <div class="controls">
+            <div class="turn-indicator">
+                <div class="dot" id="turnDot"></div>
+                <span id="turnLabel">X to move</span>
+            </div>
+            <button class="reset" id="resetBtn">Restart round</button>
+        </div>
+    </div>
+
+    <script>
+        const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+        const turnDot = document.getElementById('turnDot');
+        const turnLabel = document.getElementById('turnLabel');
+        const resetBtn = document.getElementById('resetBtn');
+        const xWinsEl = document.getElementById('xWins');
+        const oWinsEl = document.getElementById('oWins');
+        const drawsEl = document.getElementById('draws');
+
+        let cells = Array(9).fill(null);
+        let current = 'X';
+        let gameOver = false;
+        let scores = { X: 0, O: 0, draws: 0 };
+
+        const winLines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        const markSVG = {
+            X: `<svg class="mark-x" viewBox="0 0 100 100"><path d="M18 18 L82 82"/><path d="M82 18 L18 82"/></svg>`,
+            O: `<svg class="mark-o" viewBox="0 0 100 100"><circle cx="50" cy="50" r="34"/></svg>`
+        };
+
+        function buildBoard() {
+            boardEl.innerHTML = '';
+            cells.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                if (val) {
+                    cell.classList.add('filled');
+                    cell.innerHTML = markSVG[val];
+                }
+                cell.addEventListener('click', () => handleMove(i));
+                boardEl.appendChild(cell);
+            });
+        }
+
+        function handleMove(i) {
+            if (cells[i] || gameOver) return;
+            cells[i] = current;
+            buildBoard();
+
+            const result = checkWin();
+            if (result) {
+                gameOver = true;
+                highlightWin(result.line);
+                statusEl.textContent = `Player ${result.winner} wins`;
+                statusEl.classList.add('win');
+                scores[result.winner]++;
+                updateTally();
+                return;
+            }
+
+            if (cells.every(c => c)) {
+                gameOver = true;
+                statusEl.textContent = "It's a draw";
+                statusEl.classList.add('win');
+                scores.draws++;
+                updateTally();
+                return;
+            }
+
+            current = current === 'X' ? 'O' : 'X';
+            statusEl.textContent = `Player ${current}'s turn`;
+            turnLabel.textContent = `${current} to move`;
+            turnDot.classList.toggle('o-turn', current === 'O');
+        }
+
+        function checkWin() {
+            for (const line of winLines) {
+                const [a, b, c] = line;
+                if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+                    return { winner: cells[a], line };
+                }
+            }
+            return null;
+        }
+
+        function highlightWin(line) {
+            line.forEach(i => {
+                boardEl.children[i].classList.add('winning');
+            });
+        }
+
+        function updateTally() {
+            xWinsEl.textContent = scores.X;
+            oWinsEl.textContent = scores.O;
+            drawsEl.textContent = scores.draws;
+        }
+
+        function resetRound() {
+            cells = Array(9).fill(null);
+            current = 'X';
+            gameOver = false;
+            statusEl.textContent = "Player X's turn";
+            statusEl.classList.remove('win');
+            turnLabel.textContent = 'X to move';
+            turnDot.classList.remove('o-turn');
+            buildBoard();
+        }
+
+        resetBtn.addEventListener('click', resetRound);
+
+        buildBoard();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rolodex — Contact Manager</title>
+<style>
+  :root {
+    --paper: #F6F1E4;
+    --card: #FFFDF7;
+    --ink: #1F2A24;
+    --ink-soft: #5B6660;
+    --rail: #2E4034;
+    --accent: #C4562A;
+    --line: #DCD3BC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header {
+    background: var(--rail);
+    color: var(--paper);
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 6px solid var(--accent);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  header span {
+    font-size: 13px;
+    color: #C9D2C9;
+    font-family: 'Courier New', monospace;
+  }
+
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .toolbar input[type="text"] {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .toolbar input[type="text"]:focus { outline: 2px solid var(--accent); }
+  .toolbar button {
+    padding: 12px 22px;
+    border: none;
+    background: var(--accent);
+    color: #FFF8EF;
+    font-family: inherit;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .toolbar button:hover { background: #A8451F; }
+
+  #contactList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--rail);
+    padding: 18px 20px;
+    position: relative;
+  }
+  .card .cat {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 6px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 19px; font-weight: 600; }
+  .card p { margin: 3px 0; font-size: 14px; color: var(--ink-soft); }
+  .card .actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+  }
+  .card .actions button {
+    border: 1px solid var(--line);
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .card .actions button.edit:hover { border-color: var(--rail); }
+  .card .actions button.del:hover { border-color: var(--accent); color: var(--accent); }
+
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 0;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(31,42,36,0.55);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--card);
+    width: 100%;
+    max-width: 420px;
+    padding: 30px;
+    border-top: 5px solid var(--accent);
+  }
+  .modal h2 { margin-top: 0; font-size: 21px; }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ink-soft);
+    margin: 14px 0 5px;
+  }
+  .modal input, .modal select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    font-family: inherit;
+    font-size: 14px;
+    background: #FFFEFA;
+  }
+  .modal-actions {
+    margin-top: 22px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .modal-actions button {
+    padding: 10px 20px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .modal-actions .save { background: var(--rail); color: #fff; }
+  .modal-actions .cancel { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .fab {
+    position: fixed;
+    bottom: 34px; right: 34px;
+    background: var(--accent);
+    color: #FFF8EF;
+    border: none;
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .fab:hover { background: #A8451F; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Rolodex</h1>
+  <span id="count">0 contacts</span>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="Search by name, phone or email…">
+    <button onclick="handleSearch()">Search</button>
+  </div>
+
+  <div id="contactList"></div>
+</div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">New Contact</h2>
+    <input type="hidden" id="contactId">
+    <label>Name</label>
+    <input type="text" id="name" placeholder="Full name">
+    <label>Phone</label>
+    <input type="text" id="phone" placeholder="10-digit number">
+    <label>Email</label>
+    <input type="text" id="email" placeholder="name@example.com">
+    <label>Address</label>
+    <input type="text" id="address" placeholder="City, State">
+    <label>Category</label>
+    <select id="category">
+      <option>General</option>
+      <option>Family</option>
+      <option>Friend</option>
+      <option>Work</option>
+    </select>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+      <button class="save" onclick="saveContact()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api/contacts';
+
+async function loadContacts(search = '') {
+  const url = search ? `${API}?search=${encodeURIComponent(search)}` : API;
+  const res = await fetch(url);
+  const contacts = await res.json();
+  renderContacts(contacts);
+}
+
+function renderContacts(contacts) {
+  const list = document.getElementById('contactList');
+  document.getElementById('count').textContent = `${contacts.length} contact${contacts.length !== 1 ? 's' : ''}`;
+
+  if (contacts.length === 0) {
+    list.innerHTML = `<div class="empty">No contacts yet. Add one with the + button.</div>`;
+    return;
+  }
+
+  list.innerHTML = contacts.map(c => `
+    <div class="card">
+      <div class="cat">${c.category || 'General'}</div>
+      <h3>${escapeHtml(c.name)}</h3>
+      <p>${escapeHtml(c.phone)}</p>
+      ${c.email ? `<p>${escapeHtml(c.email)}</p>` : ''}
+      ${c.address ? `<p>${escapeHtml(c.address)}</p>` : ''}
+      <div class="actions">
+        <button class="edit" onclick='editContact(${JSON.stringify(c)})'>Edit</button>
+        <button class="del" onclick="deleteContact(${c.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function handleSearch() {
+  loadContacts(document.getElementById('searchInput').value.trim());
+}
+document.getElementById('searchInput').addEventListener('keyup', e => {
+  if (e.key === 'Enter') handleSearch();
+});
+
+function openModal() {
+  document.getElementById('modalTitle').textContent = 'New Contact';
+  document.getElementById('contactId').value = '';
+  document.getElementById('name').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('address').value = '';
+  document.getElementById('category').value = 'General';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function editContact(c) {
+  document.getElementById('modalTitle').textContent = 'Edit Contact';
+  document.getElementById('contactId').value = c.id;
+  document.getElementById('name').value = c.name;
+  document.getElementById('phone').value = c.phone;
+  document.getElementById('email').value = c.email || '';
+  document.getElementById('address').value = c.address || '';
+  document.getElementById('category').value = c.category || 'General';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+async function saveContact() {
+  const id = document.getElementById('contactId').value;
+  const payload = {
+    name: document.getElementById('name').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    address: document.getElementById('address').value.trim(),
+    category: document.getElementById('category').value
+  };
+
+  if (!payload.name || !payload.phone) {
+    alert('Name and phone are required.');
+    return;
+  }
+
+  if (id) {
+    await fetch(`${API}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } else {
+    await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  closeModal();
+  loadContacts();
+}
+
+async function deleteContact(id) {
+  if (!confirm('Delete this contact?')) return;
+  await fetch(`${API}/${id}`, { method: 'DELETE' });
+  loadContacts();
+}
+
+loadContacts();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradebook — Student Records</title>
+<style>
+  :root {
+    --paper: #EDF0EA;
+    --card: #FBFCF9;
+    --ink: #1E2A22;
+    --ink-soft: #62705E;
+    --rail: #2C3B2A;
+    --accent: #B5502D;
+    --accent-dark: #93401F;
+    --line: #D6DECE;
+    --good: #4C7A3F;
+    --bad: #B04A3A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; background: var(--paper); color: var(--ink); }
+  header {
+    background: var(--rail); color: var(--paper);
+    padding: 26px 40px; display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 6px solid var(--accent);
+  }
+  header h1 { margin: 0; font-size: 27px; font-weight: 500; }
+  header span { font-size: 13px; color: #C4CEBF; font-family: 'Courier New', monospace; }
+
+  nav { display: flex; gap: 4px; background: #DDE4D4; padding: 0 40px; border-bottom: 1px solid var(--line); }
+  nav button {
+    padding: 14px 22px; border: none; background: transparent;
+    font-family: inherit; font-size: 15px; cursor: pointer; color: var(--ink-soft);
+    border-bottom: 3px solid transparent;
+  }
+  nav button.active { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 30px 24px 80px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .toolbar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .toolbar input[type="text"], .toolbar select {
+    padding: 11px 14px; border: 1px solid var(--line); background: var(--card);
+    font-family: inherit; font-size: 14px;
+  }
+  .toolbar input[type="text"] { flex: 1; min-width: 200px; }
+  .toolbar button.primary {
+    padding: 11px 20px; border: none; background: var(--accent-dark); color: #fff;
+    font-family: inherit; font-size: 14px; cursor: pointer;
+  }
+  .toolbar button.primary:hover { background: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  th { background: #DDE4D4; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+
+  .tag { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 3px; font-family: 'Courier New', monospace; font-weight: 700; }
+  .tag.pass { background: #E1EBDB; color: var(--good); }
+  .tag.fail { background: #F2E0DC; color: var(--bad); }
+
+  .actions button { border: 1px solid var(--line); background: transparent; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .actions button.del:hover { border-color: var(--bad); color: var(--bad); }
+
+  .empty { text-align: center; padding: 50px 0; color: var(--ink-soft); font-style: italic; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(30,42,34,0.55); align-items: center; justify-content: center; z-index: 10; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--card); width: 100%; max-width: 420px; padding: 28px; border-top: 5px solid var(--accent); }
+  .modal h2 { margin-top: 0; font-size: 20px; }
+  .modal label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin: 12px 0 5px; }
+  .modal input, .modal select { width: 100%; padding: 9px 11px; border: 1px solid var(--line); font-family: inherit; font-size: 14px; background: #FFFEFA; }
+  .modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-actions button { padding: 9px 18px; border: none; font-family: inherit; font-size: 14px; cursor: pointer; }
+  .modal-actions .save { background: var(--rail); color: #fff; }
+  .modal-actions .cancel { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+
+  .fab {
+    position: fixed; bottom: 34px; right: 34px; background: var(--accent-dark); color: #fff;
+    border: none; width: 56px; height: 56px; border-radius: 50%; font-size: 26px; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .fab:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Gradebook</h1>
+  <span>Student Record Management</span>
+</header>
+
+<nav>
+  <button class="active" data-tab="students" onclick="switchTab('students')">Students</button>
+  <button data-tab="courses" onclick="switchTab('courses')">Courses</button>
+  <button data-tab="marks" onclick="switchTab('marks')">Marks</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- STUDENTS TAB -->
+  <div class="tab active" id="tab-students">
+    <div class="toolbar">
+      <input type="text" id="studentSearch" placeholder="Search by name, roll no or department…">
+      <button class="primary" onclick="loadStudents(document.getElementById('studentSearch').value)">Search</button>
+    </div>
+    <table>
+      <thead><tr><th>Name</th><th>Roll No</th><th>Department</th><th>Year</th><th>Email</th><th>Actions</th></tr></thead>
+      <tbody id="studentsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- COURSES TAB -->
+  <div class="tab" id="tab-courses">
+    <table>
+      <thead><tr><th>Code</th><th>Course Name</th><th>Credits</th><th>Actions</th></tr></thead>
+      <tbody id="coursesBody"></tbody>
+    </table>
+  </div>
+
+  <!-- MARKS TAB -->
+  <div class="tab" id="tab-marks">
+    <div class="toolbar">
+      <select id="marksFilter" onchange="loadMarks(this.value)"></select>
+    </div>
+    <table>
+      <thead><tr><th>Student</th><th>Course</th><th>Marks</th><th>Grade</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="marksBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<!-- Student Modal -->
+<div class="overlay" id="studentOverlay">
+  <div class="modal">
+    <h2>New Student</h2>
+    <label>Name</label><input type="text" id="s_name">
+    <label>Roll No</label><input type="text" id="s_roll">
+    <label>Department</label><input type="text" id="s_dept">
+    <label>Year</label><input type="text" id="s_year" value="1">
+    <label>Email</label><input type="text" id="s_email">
+    <label>Phone</label><input type="text" id="s_phone">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('studentOverlay')">Cancel</button>
+      <button class="save" onclick="saveStudent()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Course Modal -->
+<div class="overlay" id="courseOverlay">
+  <div class="modal">
+    <h2>New Course</h2>
+    <label>Course Code</label><input type="text" id="c_code">
+    <label>Course Name</label><input type="text" id="c_name">
+    <label>Credits</label><input type="text" id="c_credits" value="3">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('courseOverlay')">Cancel</button>
+      <button class="save" onclick="saveCourse()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Marks Modal -->
+<div class="overlay" id="markOverlay">
+  <div class="modal">
+    <h2>Add Marks</h2>
+    <label>Student</label><select id="mk_student"></select>
+    <label>Course</label><select id="mk_course"></select>
+    <label>Marks Obtained (out of 100)</label><input type="text" id="mk_marks">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal('markOverlay')">Cancel</button>
+      <button class="save" onclick="saveMark()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let currentTab = 'students';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === `tab-${tab}`));
+  if (tab === 'students') loadStudents();
+  if (tab === 'courses') loadCourses();
+  if (tab === 'marks') { populateMarksFilter(); loadMarks(); }
+}
+
+function esc(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- STUDENTS ----------
+async function loadStudents(search = '') {
+  const url = search ? `${API}/students?search=${encodeURIComponent(search)}` : `${API}/students`;
+  const res = await fetch(url);
+  const students = await res.json();
+  const body = document.getElementById('studentsBody');
+  if (students.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">No students found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = students.map(s => `
+    <tr>
+      <td>${esc(s.name)}</td>
+      <td>${esc(s.roll_no)}</td>
+      <td>${esc(s.department)}</td>
+      <td>${esc(s.year)}</td>
+      <td>${esc(s.email)}</td>
+      <td class="actions"><button class="del" onclick="deleteStudent(${s.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function saveStudent() {
+  const payload = {
+    name: document.getElementById('s_name').value.trim(),
+    roll_no: document.getElementById('s_roll').value.trim(),
+    department: document.getElementById('s_dept').value.trim(),
+    year: document.getElementById('s_year').value.trim(),
+    email: document.getElementById('s_email').value.trim(),
+    phone: document.getElementById('s_phone').value.trim()
+  };
+  if (!payload.name || !payload.roll_no) { alert('Name and roll number are required.'); return; }
+  const res = await fetch(`${API}/students`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Could not save student.'); return; }
+  closeModal('studentOverlay');
+  loadStudents();
+}
+
+async function deleteStudent(id) {
+  if (!confirm('Delete this student? Their mark records will also be removed.')) return;
+  await fetch(`${API}/students/${id}`, { method: 'DELETE' });
+  loadStudents();
+}
+
+// ---------- COURSES ----------
+async function loadCourses() {
+  const res = await fetch(`${API}/courses`);
+  const courses = await res.json();
+  const body = document.getElementById('coursesBody');
+  if (courses.length === 0) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">No courses found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = courses.map(c => `
+    <tr>
+      <td>${esc(c.code)}</td>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.credits)}</td>
+      <td class="actions"><button class="del" onclick="deleteCourse(${c.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function saveCourse() {
+  const payload = {
+    code: document.getElementById('c_code').value.trim(),
+    name: document.getElementById('c_name').value.trim(),
+    credits: document.getElementById('c_credits').value.trim()
+  };
+  if (!payload.code || !payload.name) { alert('Course code and name are required.'); return; }
+  const res = await fetch(`${API}/courses`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Could not save course.'); return; }
+  closeModal('courseOverlay');
+  loadCourses();
+}
+
+async function deleteCourse(id) {
+  if (!confirm('Delete this course? Related mark records will also be removed.')) return;
+  await fetch(`${API}/courses/${id}`, { method: 'DELETE' });
+  loadCourses();
+}
+
+// ---------- MARKS ----------
+async function populateMarksFilter() {
+  const res = await fetch(`${API}/students`);
+  const students = await res.json();
+  const sel = document.getElementById('marksFilter');
+  sel.innerHTML = `<option value="">All students</option>` +
+    students.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.roll_no)})</option>`).join('');
+}
+
+async function loadMarks(studentId = '') {
+  const url = studentId ? `${API}/marks?student_id=${studentId}` : `${API}/marks`;
+  const res = await fetch(url);
+  const marks = await res.json();
+  const body = document.getElementById('marksBody');
+  if (marks.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">No mark records found.</td></tr>`;
+    return;
+  }
+  body.innerHTML = marks.map(m => `
+    <tr>
+      <td>${esc(m.student_name)} <span style="color:var(--ink-soft);font-size:12px;">(${esc(m.roll_no)})</span></td>
+      <td>${esc(m.course_code)} — ${esc(m.course_name)}</td>
+      <td>${esc(m.marks_obtained)}</td>
+      <td><span class="tag ${m.grade === 'F' ? 'fail' : 'pass'}">${esc(m.grade)}</span></td>
+      <td>${esc(m.exam_date)}</td>
+      <td class="actions"><button class="del" onclick="deleteMark(${m.id})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteMark(id) {
+  if (!confirm('Delete this mark record?')) return;
+  await fetch(`${API}/marks/${id}`, { method: 'DELETE' });
+  loadMarks(document.getElementById('marksFilter').value);
+}
+
+async function populateMarkDropdowns() {
+  const [sRes, cRes] = await Promise.all([fetch(`${API}/students`), fetch(`${API}/courses`)]);
+  const students = await sRes.json();
+  const courses = await cRes.json();
+  document.getElementById('mk_student').innerHTML = students.map(s => `<option value="${s.id}">${esc(s.name)} (${esc(s.roll_no)})</option>`).join('') || '<option disabled>No students yet</option>';
+  document.getElementById('mk_course').innerHTML = courses.map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join('') || '<option disabled>No courses yet</option>';
+}
+
+async function saveMark() {
+  const payload = {
+    student_id: document.getElementById('mk_student').value,
+    course_id: document.getElementById('mk_course').value,
+    marks_obtained: document.getElementById('mk_marks').value.trim()
+  };
+  if (!payload.student_id || !payload.course_id || payload.marks_obtained === '') { alert('All fields are required.'); return; }
+  const res = await fetch(`${API}/marks`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Could not save marks.'); return; }
+  closeModal('markOverlay');
+  loadMarks(document.getElementById('marksFilter').value);
+}
+
+// ---------- MODALS ----------
+function openModal() {
+  if (currentTab === 'students') {
+    ['s_name','s_roll','s_dept','s_email','s_phone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('s_year').value = '1';
+    document.getElementById('studentOverlay').classList.add('show');
+  } else if (currentTab === 'courses') {
+    document.getElementById('c_code').value = '';
+    document.getElementById('c_name').value = '';
+    document.getElementById('c_credits').value = '3';
+    document.getElementById('courseOverlay').classList.add('show');
+  } else if (currentTab === 'marks') {
+    populateMarkDropdowns();
+    document.getElementById('mk_marks').value = '';
+    document.getElementById('markOverlay').classList.add('show');
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+loadStudents();
+</script>
+
+</body>
+</html>

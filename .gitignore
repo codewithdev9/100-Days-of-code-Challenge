@@ -1,2 +1,10 @@
 *.exe
-Day01_Universal_Calculator/main.exe
+*.log
+*.bin
+*.o
+*.obj
+__pycache__/
+*.pyc
+.env
+node_modules/
+.DS_Store
