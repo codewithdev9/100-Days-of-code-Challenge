@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopwatch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #12151C;
+            --panel: #191D27;
+            --panel-raised: #212636;
+            --mint: #6FE7B7;
+            --mint-dim: #3E8A6E;
+            --cream: #ECEEE7;
+            --muted: #767C8C;
+            --line: rgba(236, 238, 231, 0.08);
+            --ring-track: #262B39;
+            --gold: #E3B45C;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            font-family: 'Inter', sans-serif;
+            color: var(--cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ---- Ring + digital readout ---- */
+        .ring-wrap {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin-bottom: 30px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .ring-track {
+            fill: none;
+            stroke: var(--ring-track);
+            stroke-width: 3;
+        }
+
+        .ring-progress {
+            fill: none;
+            stroke: var(--mint);
+            stroke-width: 3;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.08s linear;
+        }
+
+        .ring-progress.running {
+            filter: drop-shadow(0 0 6px rgba(111, 231, 183, 0.5));
+        }
+
+        .readout {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .readout .time {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 400;
+            font-size: 46px;
+            letter-spacing: -0.01em;
+            color: var(--cream);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .readout .time .cs {
+            font-size: 22px;
+            color: var(--muted);
+        }
+
+        .readout .status {
+            margin-top: 8px;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .readout .status.running {
+            color: var(--mint);
+        }
+
+        .readout .status.paused {
+            color: var(--gold);
+        }
+
+        /* ---- Controls ---- */
+        .controls {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+
+        .controls button {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--cream);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .controls button:hover {
+            background: var(--panel-raised);
+        }
+
+        .controls button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-start {
+            background: var(--mint);
+            color: #0C1712;
+            border-color: var(--mint);
+            font-weight: 600;
+        }
+
+        .btn-start:hover {
+            filter: brightness(1.08);
+            background: var(--mint);
+        }
+
+        .btn-pause {
+            background: var(--gold);
+            color: #221806;
+            border-color: var(--gold);
+            font-weight: 600;
+        }
+
+        .btn-pause:hover {
+            filter: brightness(1.08);
+            background: var(--gold);
+        }
+
+        .controls button:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .controls button:disabled:hover {
+            background: var(--panel);
+        }
+
+        /* ---- Laps ---- */
+        .laps-section {
+            width: 100%;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 0 2px;
+        }
+
+        .section-head h2 {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .section-head .count {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .lap-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .lap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel);
+            padding: 12px 16px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+        }
+
+        .lap .lap-num {
+            color: var(--muted);
+            width: 40px;
+            flex-shrink: 0;
+        }
+
+        .lap .lap-delta {
+            flex: 1;
+            text-align: left;
+            padding-left: 8px;
+            color: var(--cream);
+        }
+
+        .lap .lap-total {
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .lap.fastest .lap-delta {
+            color: var(--mint);
+        }
+
+        .lap.slowest .lap-delta {
+            color: #E27A6B;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+            padding: 24px 12px;
+            border: 1px dashed var(--line);
+            border-radius: 12px;
+        }
+
+        @media (max-width: 400px) {
+            .ring-wrap {
+                width: 240px;
+                height: 240px;
+            }
+
+            .readout .time {
+                font-size: 38px;
+            }
+
+            .controls button {
+                width: 66px;
+                height: 66px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="ring-wrap">
+            <svg viewBox="0 0 280 280">
+                <circle class="ring-track" cx="140" cy="140" r="128"></circle>
+                <circle class="ring-progress" id="ringProgress" cx="140" cy="140" r="128"></circle>
+            </svg>
+            <div class="readout">
+                <div class="time"><span id="timeMain">00:00</span><span class="cs" id="timeCs">.00</span></div>
+                <div class="status" id="statusLabel">Ready</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn">Start</button>
+            <button id="lapBtn" disabled>Lap</button>
+            <button id="resetBtn" disabled>Reset</button>
+        </div>
+
+        <div class="laps-section">
+            <div class="section-head">
+                <h2>Laps</h2>
+                <span class="count" id="lapCount">0</span>
+            </div>
+            <div class="lap-list" id="lapList">
+                <div class="empty-state" id="emptyState">No laps recorded yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const RING_CIRCUMFERENCE = 2 * Math.PI * 128;
+
+            let running = false;
+            let startTimestamp = 0;
+            let elapsedBeforePause = 0;
+            let rafId = null;
+            let laps = []; // {index, totalMs, deltaMs}
+
+            const timeMain = document.getElementById('timeMain');
+            const timeCs = document.getElementById('timeCs');
+            const statusLabel = document.getElementById('statusLabel');
+            const ringProgress = document.getElementById('ringProgress');
+            const startBtn = document.getElementById('startBtn');
+            const lapBtn = document.getElementById('lapBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const lapList = document.getElementById('lapList');
+            const lapCount = document.getElementById('lapCount');
+            const emptyState = document.getElementById('emptyState');
+
+            ringProgress.style.strokeDasharray = RING_CIRCUMFERENCE;
+            ringProgress.style.strokeDashoffset = RING_CIRCUMFERENCE;
+
+            function formatTime(ms) {
+                const totalCs = Math.floor(ms / 10);
+                const cs = totalCs % 100;
+                const totalSec = Math.floor(totalCs / 100);
+                const sec = totalSec % 60;
+                const min = Math.floor(totalSec / 60);
+                return {
+                    main: `${pad(min)}:${pad(sec)}`,
+                    cs: `.${pad(cs)}`
+                };
+            }
+            function pad(n) { return n.toString().padStart(2, '0'); }
+
+            function currentElapsed() {
+                if (!running) return elapsedBeforePause;
+                return elapsedBeforePause + (performance.now() - startTimestamp);
+            }
+
+            function render() {
+                const elapsed = currentElapsed();
+                const { main, cs } = formatTime(elapsed);
+                timeMain.textContent = main;
+                timeCs.textContent = cs;
+
+                // ring sweeps once per minute
+                const secondsIntoMinute = (elapsed / 1000) % 60;
+                const fraction = secondsIntoMinute / 60;
+                const offset = RING_CIRCUMFERENCE * (1 - fraction);
+                ringProgress.style.strokeDashoffset = offset;
+
+                if (running) {
+                    rafId = requestAnimationFrame(render);
+                }
+            }
+
+            function start() {
+                running = true;
+                startTimestamp = performance.now();
+                statusLabel.textContent = 'Running';
+                statusLabel.className = 'status running';
+                ringProgress.classList.add('running');
+
+                startBtn.textContent = 'Pause';
+                startBtn.classList.remove('btn-start');
+                startBtn.classList.add('btn-pause');
+                lapBtn.disabled = false;
+                resetBtn.disabled = false;
+
+                render();
+            }
+
+            function pause() {
+                running = false;
+                elapsedBeforePause = currentElapsed();
+                cancelAnimationFrame(rafId);
+                statusLabel.textContent = 'Paused';
+                statusLabel.className = 'status paused';
+                ringProgress.classList.remove('running');
+
+                startBtn.textContent = 'Resume';
+                startBtn.classList.remove('btn-pause');
+                startBtn.classList.add('btn-start');
+                lapBtn.disabled = true;
+            }
+
+            function reset() {
+                running = false;
+                cancelAnimationFrame(rafId);
+                elapsedBeforePause = 0;
+                laps = [];
+
+                timeMain.textContent = '00:00';
+                timeCs.textContent = '.00';
+                statusLabel.textContent = 'Ready';
+                statusLabel.className = 'status';
+                ringProgress.classList.remove('running');
+                ringProgress.style.strokeDashoffset = RING_CIRCUMFERENCE;
+
+                startBtn.textContent = 'Start';
+                startBtn.classList.remove('btn-pause');
+                startBtn.classList.add('btn-start');
+                lapBtn.disabled = true;
+                resetBtn.disabled = true;
+
+                renderLaps();
+            }
+
+            function recordLap() {
+                const total = currentElapsed();
+                const prevTotal = laps.length > 0 ? laps[laps.length - 1].totalMs : 0;
+                const delta = total - prevTotal;
+                laps.push({ index: laps.length + 1, totalMs: total, deltaMs: delta });
+                renderLaps();
+            }
+
+            function renderLaps() {
+                lapCount.textContent = laps.length;
+
+                if (laps.length === 0) {
+                    lapList.innerHTML = '';
+                    lapList.appendChild(emptyState);
+                    return;
+                }
+
+                let fastestIdx = null, slowestIdx = null;
+                if (laps.length > 1) {
+                    let minDelta = Infinity, maxDelta = -Infinity;
+                    laps.forEach((l, i) => {
+                        if (l.deltaMs < minDelta) { minDelta = l.deltaMs; fastestIdx = i; }
+                        if (l.deltaMs > maxDelta) { maxDelta = l.deltaMs; slowestIdx = i; }
+                    });
+                }
+
+                lapList.innerHTML = '';
+                // show most recent first
+                for (let i = laps.length - 1; i >= 0; i--) {
+                    const l = laps[i];
+                    const div = document.createElement('div');
+                    let cls = 'lap';
+                    if (laps.length > 1 && i === fastestIdx) cls += ' fastest';
+                    if (laps.length > 1 && i === slowestIdx) cls += ' slowest';
+                    div.className = cls;
+
+                    const deltaFmt = formatTime(l.deltaMs);
+                    const totalFmt = formatTime(l.totalMs);
+
+                    div.innerHTML = `
+        <span class="lap-num">#${l.index}</span>
+        <span class="lap-delta">${deltaFmt.main}${deltaFmt.cs}</span>
+        <span class="lap-total">${totalFmt.main}${totalFmt.cs}</span>
+      `;
+                    lapList.appendChild(div);
+                }
+            }
+
+            startBtn.addEventListener('click', () => {
+                if (running) pause();
+                else start();
+            });
+            lapBtn.addEventListener('click', recordLap);
+            resetBtn.addEventListener('click', reset);
+        })();
+    </script>
+
+</body>
+
+</html>

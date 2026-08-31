@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiral Diary Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --paper: #FBF6EA;
+            --paper-line: #E4D9C0;
+            --paper-shadow: #E9DFC7;
+            --ink: #3E3324;
+            --ink-soft: #6B5D48;
+            --forest: #4C6B4C;
+            --forest-dark: #354E37;
+            --terracotta: #C1694F;
+            --sage: #93A97F;
+            --gold: #C79A32;
+            --spiral: #9C948A;
+            --spiral-dark: #6E675E;
+            --credit: #4C7A4F;
+            --debit: #B65B4A;
+            --bg1: #2E4034;
+            --bg2: #1D2B22;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 30% 0%, #3B5240 0%, transparent 60%),
+                linear-gradient(160deg, var(--bg1), var(--bg2));
+            font-family: 'Poppins', sans-serif;
+            color: var(--ink);
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 48px 16px 64px;
+        }
+
+        /* ============ Notebook shell ============ */
+        .notebook {
+            position: relative;
+            width: 100%;
+            max-width: 620px;
+            margin-left: 30px;
+        }
+
+        .notebook::before,
+        .notebook::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            right: -8px;
+            background: var(--paper-shadow);
+            border-radius: 14px;
+            z-index: 0;
+        }
+
+        .notebook::before {
+            top: 10px;
+            bottom: -10px;
+            transform: rotate(0.6deg);
+        }
+
+        .notebook::after {
+            top: 18px;
+            bottom: -18px;
+            transform: rotate(-0.9deg);
+            background: #DDD2B6;
+        }
+
+        .page {
+            position: relative;
+            z-index: 2;
+            background:
+                repeating-linear-gradient(var(--paper) 0px, var(--paper) 33px,
+                    var(--paper-line) 34px, var(--paper) 35px);
+            border-radius: 14px;
+            padding: 34px 30px 30px 46px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+            transform-origin: left center;
+            animation: none;
+        }
+
+        .page.flip {
+            animation: pageTurn 0.5s ease;
+        }
+
+        @keyframes pageTurn {
+            0% {
+                transform: rotateY(0deg) scale(1);
+            }
+
+            35% {
+                transform: rotateY(-9deg) scale(0.99);
+                opacity: 0.85;
+            }
+
+            100% {
+                transform: rotateY(0deg) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ---- Spiral rings ---- */
+        .spiral {
+            position: absolute;
+            left: -14px;
+            top: 26px;
+            bottom: 26px;
+            width: 34px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 3;
+        }
+
+        .ring {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 5px solid var(--spiral);
+            background: transparent;
+            box-shadow:
+                inset 0 0 0 2px var(--paper),
+                2px 2px 3px rgba(0, 0, 0, 0.35);
+            flex-shrink: 0;
+        }
+
+        /* ============ Header ============ */
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: 2px solid var(--forest);
+            color: var(--forest);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-btn:hover {
+            background: var(--forest);
+            color: var(--paper);
+        }
+
+        .month-title {
+            text-align: center;
+            flex: 1;
+        }
+
+        .month-title .emoji {
+            font-size: 34px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .month-title h1 {
+            font-family: 'Kalam', cursive;
+            font-size: 26px;
+            margin: 0;
+            color: var(--forest-dark);
+            font-weight: 700;
+        }
+
+        .month-title .year {
+            font-size: 13px;
+            color: var(--ink-soft);
+            letter-spacing: 0.05em;
+        }
+
+        /* ============ Mini calendar ============ */
+        .mini-cal {
+            margin: 14px 0 18px;
+        }
+
+        .weekday-row,
+        .day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .weekday-row span {
+            text-align: center;
+            font-size: 10.5px;
+            color: var(--ink-soft);
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .day-grid {
+            margin-top: 6px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--ink);
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.12s ease;
+            position: relative;
+        }
+
+        .day-cell.empty {
+            cursor: default;
+        }
+
+        .day-cell:not(.empty):hover {
+            background: rgba(147, 169, 127, 0.25);
+        }
+
+        .day-cell.today {
+            border-color: var(--terracotta);
+            color: var(--terracotta);
+            font-weight: 600;
+        }
+
+        .day-cell.selected {
+            background: var(--forest);
+            color: var(--paper);
+            font-weight: 600;
+        }
+
+        .day-cell.has-task::after {
+            content: "";
+            position: absolute;
+            bottom: 3px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--gold);
+        }
+
+        .day-cell.selected.has-task::after {
+            background: var(--paper);
+        }
+
+        /* ============ Divider ============ */
+        .divider {
+            border: none;
+            border-top: 2px dashed var(--paper-line);
+            margin: 18px 0;
+        }
+
+        /* ============ Thought ============ */
+        .thought-box {
+            text-align: center;
+            padding: 6px 8px 4px;
+        }
+
+        .thought-box .label {
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--sage);
+            font-weight: 600;
+        }
+
+        .thought-box p {
+            font-family: 'Kalam', cursive;
+            font-size: 19px;
+            color: var(--ink);
+            line-height: 1.5;
+            margin: 6px 0 0;
+        }
+
+        /* ============ Section heads ============ */
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .section-head h2 {
+            font-family: 'Kalam', cursive;
+            font-size: 19px;
+            margin: 0;
+            color: var(--forest-dark);
+        }
+
+        .section-head .sub {
+            font-size: 12px;
+            color: var(--ink-soft);
+        }
+
+        /* ============ Tasks ============ */
+        .task-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .task-form input[type="text"] {
+            flex: 1;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1.5px solid var(--paper-line);
+            background: #fffdf7;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13.5px;
+            color: var(--ink);
+            outline: none;
+        }
+
+        .task-form input[type="text"]:focus {
+            border-color: var(--forest);
+        }
+
+        .task-form button {
+            background: var(--forest);
+            color: var(--paper);
+            border: none;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+
+        .task-form button:hover {
+            filter: brightness(1.12);
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 253, 247, 0.6);
+            border: 1px solid var(--paper-line);
+            border-radius: 8px;
+            padding: 9px 10px;
+        }
+
+        .task-item .check {
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            border: 2px solid var(--forest);
+            flex-shrink: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            color: var(--paper);
+            font-size: 11px;
+            transition: all 0.15s ease;
+        }
+
+        .task-item .check.done {
+            background: var(--forest);
+        }
+
+        .task-item .text {
+            flex: 1;
+            font-size: 13.5px;
+            color: var(--ink);
+        }
+
+        .task-item.done .text {
+            text-decoration: line-through;
+            color: var(--ink-soft);
+        }
+
+        .task-item .del {
+            background: none;
+            border: none;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 2px 4px;
+            border-radius: 5px;
+        }
+
+        .task-item .del:hover {
+            color: var(--terracotta);
+            background: rgba(193, 105, 79, 0.12);
+        }
+
+        .progress-line {
+            font-size: 12px;
+            color: var(--ink-soft);
+            margin-top: 4px;
+        }
+
+        .empty-note {
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            font-style: italic;
+            padding: 8px 2px;
+        }
+
+        /* ============ Hisab (ledger) ============ */
+        .hisab-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .hisab-form input[type="text"] {
+            flex: 1 1 120px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            border: 1.5px solid var(--paper-line);
+            background: #fffdf7;
+            font-size: 13.5px;
+            outline: none;
+            color: var(--ink);
+        }
+
+        .hisab-form input[type="number"] {
+            width: 90px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1.5px solid var(--paper-line);
+            background: #fffdf7;
+            font-size: 13.5px;
+            outline: none;
+            color: var(--ink);
+        }
+
+        .hisab-form input:focus {
+            border-color: var(--forest);
+        }
+
+        .hisab-form select {
+            padding: 9px 8px;
+            border-radius: 8px;
+            border: 1.5px solid var(--paper-line);
+            background: #fffdf7;
+            font-size: 13px;
+            color: var(--ink);
+        }
+
+        .hisab-form .btn-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .hisab-form button {
+            border: none;
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-add-entry {
+            background: var(--forest);
+            color: var(--paper);
+            flex: 1;
+        }
+
+        .btn-quick-milk {
+            background: #EFE7D2;
+            color: var(--forest-dark);
+            border: 1.5px solid var(--sage) !important;
+        }
+
+        .entry-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .entry-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 253, 247, 0.6);
+            border: 1px solid var(--paper-line);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .entry-item .desc {
+            flex: 1;
+            color: var(--ink);
+        }
+
+        .entry-item .amt {
+            font-weight: 600;
+            margin-right: 8px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .entry-item .amt.credit {
+            color: var(--credit);
+        }
+
+        .entry-item .amt.debit {
+            color: var(--debit);
+        }
+
+        .entry-item .del {
+            background: none;
+            border: none;
+            color: var(--ink-soft);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .entry-item .del:hover {
+            color: var(--terracotta);
+        }
+
+        .totals {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            color: var(--ink-soft);
+            border-top: 1px dashed var(--paper-line);
+            padding-top: 8px;
+        }
+
+        .totals strong {
+            color: var(--forest-dark);
+        }
+
+        @media (max-width: 480px) {
+            .notebook {
+                margin-left: 20px;
+            }
+
+            .page {
+                padding: 28px 18px 24px 36px;
+            }
+
+            .month-title h1 {
+                font-size: 21px;
+            }
+
+            .thought-box p {
+                font-size: 16.5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="notebook">
+        <div class="spiral" id="spiral"></div>
+
+        <div class="page" id="page">
+            <div class="page-head">
+                <button class="nav-btn" id="prevMonth">‹</button>
+                <div class="month-title">
+                    <span class="emoji" id="monthEmoji">🌸</span>
+                    <h1 id="monthName">Month</h1>
+                    <div class="year" id="yearLabel">2026</div>
+                </div>
+                <button class="nav-btn" id="nextMonth">›</button>
+            </div>
+
+            <div class="mini-cal">
+                <div class="weekday-row">
+                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                </div>
+                <div class="day-grid" id="dayGrid"></div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="thought-box">
+                <div class="label">Today's Thought</div>
+                <p id="thoughtText">...</p>
+            </div>
+
+            <hr class="divider">
+
+            <div class="tasks-section">
+                <div class="section-head">
+                    <h2>To‑Do <span id="taskDateLabel"></span></h2>
+                    <span class="sub" id="taskProgress"></span>
+                </div>
+                <div class="task-form">
+                    <input type="text" id="taskInput" placeholder="Add a task for today...">
+                    <button id="taskAddBtn">Add</button>
+                </div>
+                <div class="task-list" id="taskList"></div>
+            </div>
+
+            <hr class="divider">
+
+            <div class="hisab-section">
+                <div class="section-head">
+                    <h2>Milk &amp; Hisab 🥛</h2>
+                </div>
+                <div class="hisab-form">
+                    <input type="text" id="hisabDesc" placeholder="Description (e.g. Milk)">
+                    <input type="number" id="hisabAmt" placeholder="₹ Amount" min="0" step="0.5">
+                    <select id="hisabType">
+                        <option value="debit">Kharch (−)</option>
+                        <option value="credit">Jama (+)</option>
+                    </select>
+                    <div class="btn-row">
+                        <button class="btn-quick-milk" id="quickMilkBtn">🥛 Quick: Milk</button>
+                        <button class="btn-add-entry" id="hisabAddBtn">Add Entry</button>
+                    </div>
+                </div>
+                <div class="entry-list" id="entryList"></div>
+                <div class="totals">
+                    <span>Today: <strong id="dayTotal">₹0</strong></span>
+                    <span>This month: <strong id="monthTotal">₹0</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const monthInfo = [
+                { name: 'January', emoji: '❄️' },
+                { name: 'February', emoji: '🌷' },
+                { name: 'March', emoji: '🌱' },
+                { name: 'April', emoji: '🌸' },
+                { name: 'May', emoji: '🌼' },
+                { name: 'June', emoji: '☀️' },
+                { name: 'July', emoji: '🌧️' },
+                { name: 'August', emoji: '🦚' },
+                { name: 'September', emoji: '🍃' },
+                { name: 'October', emoji: '🪔' },
+                { name: 'November', emoji: '🍁' },
+                { name: 'December', emoji: '🎄' },
+            ];
+
+            const thoughts = [
+                "Every sunrise is a new page waiting to be written.",
+                "आज का दिन छोटा हो सकता है, पर इसकी यादें बड़ी बना लो।",
+                "Small steps every day lead to big changes.",
+                "खुद पर भरोसा रखो, बाकी सब अपने आप हो जाएगा।",
+                "The best time to start was yesterday. The next best time is now.",
+                "मुस्कुराहट सबसे सस्ती दवा है, आज किसी को मुस्कुरा दो।",
+                "Progress, not perfection.",
+                "जो बीत गया उसे जाने दो, आज नया मौका है।",
+                "You are stronger than you think.",
+                "थोड़ा सा प्यार, थोड़ा सा सुकून — यही ज़िंदगी है।",
+                "Discipline is choosing what you want most over what you want now.",
+                "घर की छोटी खुशियाँ ही सबसे बड़ी दौलत हैं।",
+                "Write today's chapter so tomorrow reads well.",
+                "मेहनत कभी बेकार नहीं जाती।",
+                "Rest is not laziness, it's part of the plan.",
+                "जो आज कर सकते हो, कल पर मत टालो।",
+                "A calm mind can solve any storm.",
+                "अपनों के साथ बिताया गया वक़्त सबसे कीमती है।",
+                "Growth begins at the edge of comfort.",
+                "थोड़ा धैर्य रखो, अच्छा वक़्त ज़रूर आएगा।",
+                "Gratitude turns what we have into enough.",
+                "आज किसी की मदद करो, दिल को सुकून मिलेगा।",
+                "One task at a time builds a great day.",
+                "सेहत है तो सब कुछ है, आज अपना ख्याल रखो।",
+                "Kindness costs nothing but means everything.",
+                "सपने वही सच होते हैं जिनके लिए मेहनत की जाए।",
+                "Every day is a fresh start.",
+                "अपने काम से प्यार करो, सफलता खुद चलकर आएगी।",
+                "Slow progress is still progress.",
+                "परिवार के साथ हर पल को जियो, यही असली दौलत है।",
+                "Focus on today; tomorrow will take care of itself.",
+                "जो जितना बांटे, उतना ही उसके पास बढ़ता है।",
+                "A tidy page today, a lighter mind tomorrow.",
+                "छोटी-छोटी खुशियाँ ढूंढो, बड़ी ज़िंदगी बन जाएगी।",
+                "Believe you can, and you're halfway there.",
+                "आज का हिसाब आज ही रखो, कल का बोझ नहीं रहेगा।",
+                "Every effort you make today matters.",
+                "धीरज और मेहनत से हर काम हो जाता है।",
+                "Be proud of how far you've come.",
+                "आज मुस्कुराओ, कल खुद मुस्कुराएगा।"
+            ];
+
+            const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const dateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            const monthKeyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+            const dayOfYear = (d) => {
+                const start = new Date(d.getFullYear(), 0, 0);
+                return Math.floor((d - start) / 86400000);
+            };
+            const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+            const today = new Date();
+            let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            let selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+            let tasksByDate = {};   // { 'YYYY-MM-DD': [{id, text, done}] }
+            let ledgerByDate = {};  // { 'YYYY-MM-DD': [{id, desc, amount, type}] }
+            let idCounter = 1;
+
+            const $ = (sel) => document.querySelector(sel);
+            const spiral = $('#spiral');
+            const page = $('#page');
+            const monthEmoji = $('#monthEmoji');
+            const monthName = $('#monthName');
+            const yearLabel = $('#yearLabel');
+            const dayGrid = $('#dayGrid');
+            const thoughtText = $('#thoughtText');
+            const taskDateLabel = $('#taskDateLabel');
+            const taskProgress = $('#taskProgress');
+            const taskList = $('#taskList');
+            const taskInput = $('#taskInput');
+            const entryList = $('#entryList');
+            const dayTotalEl = $('#dayTotal');
+            const monthTotalEl = $('#monthTotal');
+
+            function buildSpiral() {
+                spiral.innerHTML = '';
+                const count = 14;
+                for (let i = 0; i < count; i++) {
+                    const r = document.createElement('div');
+                    r.className = 'ring';
+                    spiral.appendChild(r);
+                }
+            }
+
+            function flipPage() {
+                page.classList.remove('flip');
+                void page.offsetWidth; // reflow to restart animation
+                page.classList.add('flip');
+            }
+
+            function renderHeader() {
+                const m = viewDate.getMonth();
+                monthEmoji.textContent = monthInfo[m].emoji;
+                monthName.textContent = monthInfo[m].name;
+                yearLabel.textContent = viewDate.getFullYear();
+            }
+
+            function renderCalendar() {
+                dayGrid.innerHTML = '';
+                const y = viewDate.getFullYear();
+                const m = viewDate.getMonth();
+                const firstWeekday = new Date(y, m, 1).getDay();
+                const totalDays = daysInMonth(y, m);
+
+                for (let i = 0; i < firstWeekday; i++) {
+                    const empty = document.createElement('div');
+                    empty.className = 'day-cell empty';
+                    dayGrid.appendChild(empty);
+                }
+
+                for (let d = 1; d <= totalDays; d++) {
+                    const cellDate = new Date(y, m, d);
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+                    cell.textContent = d;
+
+                    if (sameDay(cellDate, today)) cell.classList.add('today');
+                    if (sameDay(cellDate, selectedDate)) cell.classList.add('selected');
+                    const key = dateKey(cellDate);
+                    if ((tasksByDate[key] || []).length > 0) cell.classList.add('has-task');
+
+                    cell.addEventListener('click', () => {
+                        selectedDate = cellDate;
+                        flipPage();
+                        renderCalendar();
+                        renderThought();
+                        renderTasks();
+                        renderLedger();
+                    });
+
+                    dayGrid.appendChild(cell);
+                }
+            }
+
+            function renderThought() {
+                const idx = dayOfYear(selectedDate) % thoughts.length;
+                thoughtText.textContent = thoughts[idx];
+            }
+
+            function renderTasks() {
+                const key = dateKey(selectedDate);
+                const list = tasksByDate[key] || [];
+                const isToday = sameDay(selectedDate, today);
+                taskDateLabel.textContent = isToday
+                    ? '(Today)'
+                    : `(${selectedDate.getDate()} ${monthInfo[selectedDate.getMonth()].name.slice(0, 3)})`;
+
+                const done = list.filter(t => t.done).length;
+                taskProgress.textContent = list.length ? `${done}/${list.length} done` : '';
+
+                taskList.innerHTML = '';
+                if (list.length === 0) {
+                    taskList.innerHTML = `<div class="empty-note">No tasks yet for this day.</div>`;
+                    return;
+                }
+
+                list.forEach(t => {
+                    const item = document.createElement('div');
+                    item.className = 'task-item' + (t.done ? ' done' : '');
+                    item.innerHTML = `
+        <button class="check ${t.done ? 'done' : ''}" data-id="${t.id}">${t.done ? '✓' : ''}</button>
+        <span class="text">${escapeHtml(t.text)}</span>
+        <button class="del" data-id="${t.id}">✕</button>
+      `;
+                    taskList.appendChild(item);
+                });
+
+                taskList.querySelectorAll('.check').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = Number(btn.dataset.id);
+                        const arr = tasksByDate[key] || [];
+                        const t = arr.find(x => x.id === id);
+                        if (t) t.done = !t.done;
+                        renderTasks();
+                        renderCalendar();
+                    });
+                });
+                taskList.querySelectorAll('.del').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = Number(btn.dataset.id);
+                        tasksByDate[key] = (tasksByDate[key] || []).filter(x => x.id !== id);
+                        renderTasks();
+                        renderCalendar();
+                    });
+                });
+            }
+
+            function addTask() {
+                const text = taskInput.value.trim();
+                if (!text) return;
+                const key = dateKey(selectedDate);
+                if (!tasksByDate[key]) tasksByDate[key] = [];
+                tasksByDate[key].push({ id: idCounter++, text, done: false });
+                taskInput.value = '';
+                renderTasks();
+                renderCalendar();
+            }
+
+            function renderLedger() {
+                const key = dateKey(selectedDate);
+                const list = ledgerByDate[key] || [];
+                entryList.innerHTML = '';
+
+                if (list.length === 0) {
+                    entryList.innerHTML = `<div class="empty-note">No entries for this day.</div>`;
+                } else {
+                    list.forEach(e => {
+                        const item = document.createElement('div');
+                        item.className = 'entry-item';
+                        const sign = e.type === 'credit' ? '+' : '−';
+                        item.innerHTML = `
+          <span class="desc">${escapeHtml(e.desc)}</span>
+          <span class="amt ${e.type}">${sign}₹${e.amount.toFixed(2)}</span>
+          <button class="del" data-id="${e.id}">✕</button>
+        `;
+                        entryList.appendChild(item);
+                    });
+                    entryList.querySelectorAll('.del').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const id = Number(btn.dataset.id);
+                            ledgerByDate[key] = (ledgerByDate[key] || []).filter(x => x.id !== id);
+                            renderLedger();
+                        });
+                    });
+                }
+
+                const dayTotal = list.reduce((sum, e) => sum + (e.type === 'credit' ? e.amount : -e.amount), 0);
+                dayTotalEl.textContent = `${dayTotal < 0 ? '−' : ''}₹${Math.abs(dayTotal).toFixed(2)}`;
+
+                const mKey = monthKeyOf(selectedDate);
+                let monthTotal = 0;
+                Object.keys(ledgerByDate).forEach(k => {
+                    if (k.startsWith(mKey)) {
+                        ledgerByDate[k].forEach(e => {
+                            monthTotal += (e.type === 'credit' ? e.amount : -e.amount);
+                        });
+                    }
+                });
+                monthTotalEl.textContent = `${monthTotal < 0 ? '−' : ''}₹${Math.abs(monthTotal).toFixed(2)}`;
+            }
+
+            function addLedgerEntry(desc, amount, type) {
+                if (!desc || !amount || amount <= 0) return;
+                const key = dateKey(selectedDate);
+                if (!ledgerByDate[key]) ledgerByDate[key] = [];
+                ledgerByDate[key].push({ id: idCounter++, desc, amount, type });
+                renderLedger();
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ---- Navigation ----
+            $('#prevMonth').addEventListener('click', () => {
+                viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+                if (selectedDate.getMonth() !== viewDate.getMonth() || selectedDate.getFullYear() !== viewDate.getFullYear()) {
+                    selectedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+                }
+                flipPage();
+                renderHeader();
+                renderCalendar();
+                renderThought();
+                renderTasks();
+                renderLedger();
+            });
+
+            $('#nextMonth').addEventListener('click', () => {
+                viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+                if (selectedDate.getMonth() !== viewDate.getMonth() || selectedDate.getFullYear() !== viewDate.getFullYear()) {
+                    selectedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+                }
+                flipPage();
+                renderHeader();
+                renderCalendar();
+                renderThought();
+                renderTasks();
+                renderLedger();
+            });
+
+            $('#taskAddBtn').addEventListener('click', addTask);
+            taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTask(); });
+
+            $('#hisabAddBtn').addEventListener('click', () => {
+                const desc = $('#hisabDesc').value.trim() || 'Entry';
+                const amount = parseFloat($('#hisabAmt').value);
+                const type = $('#hisabType').value;
+                addLedgerEntry(desc, amount, type);
+                $('#hisabDesc').value = '';
+                $('#hisabAmt').value = '';
+            });
+
+            $('#quickMilkBtn').addEventListener('click', () => {
+                $('#hisabDesc').value = 'Milk';
+                $('#hisabType').value = 'debit';
+                $('#hisabAmt').focus();
+            });
+
+            // ---- Init ----
+            buildSpiral();
+            renderHeader();
+            renderCalendar();
+            renderThought();
+            renderTasks();
+            renderLedger();
+        })();
+    </script>
+
+</body>
+
+</html>

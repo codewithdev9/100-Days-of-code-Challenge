@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alarm — Wake Well</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,450;9..144,600&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #12162A;
+            --bg-panel: #1B2140;
+            --bg-panel-raised: #232A4E;
+            --amber: #F0A868;
+            --amber-dim: #B67B4C;
+            --cream: #F4EEE3;
+            --muted: #8D93B8;
+            --line: rgba(244, 238, 227, 0.09);
+            --danger: #E2735A;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 50% -10%, #2A2F58 0%, transparent 55%),
+                var(--bg-deep);
+            font-family: 'Inter', sans-serif;
+            color: var(--cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        /* ---- Header / live clock ---- */
+        .hero {
+            text-align: center;
+            padding: 8px 0 36px;
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 28px;
+        }
+
+        .hero .date {
+            font-size: 13px;
+            letter-spacing: 0.02em;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .hero .clock {
+            font-family: 'Fraunces', serif;
+            font-optical-sizing: auto;
+            font-weight: 450;
+            font-size: 68px;
+            line-height: 1;
+            letter-spacing: -0.01em;
+            color: var(--cream);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .hero .clock .sec {
+            color: var(--amber-dim);
+            font-size: 32px;
+            font-weight: 300;
+        }
+
+        .hero .meridiem {
+            font-size: 20px;
+            color: var(--amber);
+            margin-left: 6px;
+            vertical-align: 8px;
+        }
+
+        .hero .next-alarm {
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .hero .next-alarm strong {
+            color: var(--amber);
+            font-weight: 500;
+        }
+
+        /* ---- Section heading ---- */
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .section-head h2 {
+            font-family: 'Fraunces', serif;
+            font-weight: 450;
+            font-size: 19px;
+            margin: 0;
+            color: var(--cream);
+        }
+
+        .section-head .count {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ---- Alarm list ---- */
+        .alarm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 22px;
+            min-height: 40px;
+        }
+
+        .alarm {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px 16px 16px 20px;
+            transition: opacity 0.2s ease, transform 0.15s ease;
+        }
+
+        .alarm.disabled {
+            opacity: 0.45;
+        }
+
+        .alarm.ringing {
+            border-color: var(--amber-dim);
+            background: linear-gradient(135deg, var(--bg-panel-raised), var(--bg-panel));
+        }
+
+        .alarm .left {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .alarm .time {
+            font-family: 'Fraunces', serif;
+            font-size: 26px;
+            font-weight: 450;
+            font-variant-numeric: tabular-nums;
+            color: var(--cream);
+        }
+
+        .alarm .time .mer {
+            font-size: 14px;
+            color: var(--muted);
+            margin-left: 4px;
+        }
+
+        .alarm .label {
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        .alarm .days {
+            font-size: 11px;
+            color: var(--amber-dim);
+            letter-spacing: 0.03em;
+            margin-top: 1px;
+        }
+
+        .alarm .right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            width: 42px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .switch .track {
+            position: absolute;
+            inset: 0;
+            background: #343B63;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .switch .track::before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            top: 3px;
+            background: var(--cream);
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+
+        .switch input:checked+.track {
+            background: var(--amber-dim);
+        }
+
+        .switch input:checked+.track::before {
+            transform: translateX(18px);
+            background: var(--amber);
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+            background: rgba(226, 115, 90, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            font-size: 13.5px;
+            padding: 28px 12px;
+            border: 1px dashed var(--line);
+            border-radius: 14px;
+        }
+
+        /* ---- Add alarm form ---- */
+        .add-form {
+            background: var(--bg-panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .add-form .row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+
+        .field input[type="time"],
+        .field input[type="text"] {
+            background: var(--bg-deep);
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 10px 12px;
+            color: var(--cream);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .field input:focus {
+            border-color: var(--amber-dim);
+        }
+
+        .field input[type="time"] {
+            font-variant-numeric: tabular-nums;
+            color-scheme: dark;
+        }
+
+        .day-picker {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .day-picker button {
+            flex: 1;
+            background: var(--bg-deep);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            border-radius: 8px;
+            padding: 8px 0;
+            font-size: 11.5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .day-picker button.active {
+            background: rgba(240, 168, 104, 0.15);
+            border-color: var(--amber-dim);
+            color: var(--amber);
+        }
+
+        .add-btn {
+            width: 100%;
+            background: var(--amber);
+            color: #1A1206;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 0;
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: filter 0.15s ease, transform 0.1s ease;
+        }
+
+        .add-btn:hover {
+            filter: brightness(1.08);
+        }
+
+        .add-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* ---- Ringing overlay ---- */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 12, 24, 0.88);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .overlay-card .glow {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--amber) 0%, transparent 70%);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(0.9);
+                opacity: 0.7;
+            }
+
+            50% {
+                transform: scale(1.15);
+                opacity: 1;
+            }
+        }
+
+        .overlay-card .ring-time {
+            font-family: 'Fraunces', serif;
+            font-size: 56px;
+            color: var(--cream);
+            margin-bottom: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .overlay-card .ring-label {
+            color: var(--muted);
+            font-size: 15px;
+            margin-bottom: 30px;
+        }
+
+        .overlay-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .overlay-actions button {
+            padding: 13px 26px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .snooze-btn {
+            background: var(--bg-panel-raised);
+            color: var(--cream);
+            border: 1px solid var(--line) !important;
+        }
+
+        .stop-btn {
+            background: var(--amber);
+            color: #1A1206;
+        }
+
+        @media (max-width: 420px) {
+            .hero .clock {
+                font-size: 52px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="hero">
+            <div class="date" id="dateDisplay"></div>
+            <div class="clock">
+                <span id="timeMain">--:--</span><span class="sec" id="timeSec">:--</span><span class="meridiem"
+                    id="timeMer">--</span>
+            </div>
+            <div class="next-alarm" id="nextAlarm"></div>
+        </div>
+
+        <div class="section-head">
+            <h2>Alarms</h2>
+            <span class="count" id="alarmCount">0</span>
+        </div>
+
+        <div class="alarm-list" id="alarmList"></div>
+
+        <div class="add-form">
+            <div class="row">
+                <div class="field">
+                    <label for="alarmTime">Time</label>
+                    <input type="time" id="alarmTime">
+                </div>
+                <div class="field">
+                    <label for="alarmLabel">Label</label>
+                    <input type="text" id="alarmLabel" placeholder="Wake up" maxlength="30">
+                </div>
+            </div>
+            <div class="day-picker" id="dayPicker">
+                <button data-day="0">S</button>
+                <button data-day="1">M</button>
+                <button data-day="2">T</button>
+                <button data-day="3">W</button>
+                <button data-day="4">T</button>
+                <button data-day="5">F</button>
+                <button data-day="6">S</button>
+            </div>
+            <button class="add-btn" id="addBtn">Add alarm</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="overlay-card">
+            <div class="glow"></div>
+            <div class="ring-time" id="ringTime">7:00 AM</div>
+            <div class="ring-label" id="ringLabel">Wake up</div>
+            <div class="overlay-actions">
+                <button class="snooze-btn" id="snoozeBtn">Snooze 5 min</button>
+                <button class="stop-btn" id="stopBtn">Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let alarms = []; // {id, hour, minute, label, days:[0..6], enabled, firedForMinute}
+            let idCounter = 1;
+            let selectedDays = new Set();
+            let ringingAlarm = null;
+            let audioCtx = null;
+            let beepInterval = null;
+
+            const $ = (sel) => document.querySelector(sel);
+            const timeMain = $('#timeMain');
+            const timeSec = $('#timeSec');
+            const timeMer = $('#timeMer');
+            const dateDisplay = $('#dateDisplay');
+            const nextAlarmEl = $('#nextAlarm');
+            const alarmList = $('#alarmList');
+            const alarmCount = $('#alarmCount');
+            const dayPicker = $('#dayPicker');
+            const overlay = $('#overlay');
+
+            function pad(n) { return n.toString().padStart(2, '0'); }
+
+            function formatTime(h, m, withMeridiem) {
+                const mer = h >= 12 ? 'PM' : 'AM';
+                let h12 = h % 12; if (h12 === 0) h12 = 12;
+                return withMeridiem ? `${h12}:${pad(m)} ${mer}` : `${h12}:${pad(m)}`;
+            }
+
+            function tickClock() {
+                const now = new Date();
+                const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+                const mer = h >= 12 ? 'PM' : 'AM';
+                let h12 = h % 12; if (h12 === 0) h12 = 12;
+                timeMain.textContent = `${h12}:${pad(m)}`;
+                timeSec.textContent = `:${pad(s)}`;
+                timeMer.textContent = mer;
+                dateDisplay.textContent = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+                checkAlarms(now);
+                renderNextAlarm(now);
+            }
+
+            function checkAlarms(now) {
+                if (ringingAlarm) return;
+                const h = now.getHours(), m = now.getMinutes();
+                const day = now.getDay();
+                const stampKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${h}-${m}`;
+
+                for (const a of alarms) {
+                    if (!a.enabled) continue;
+                    if (a.hour !== h || a.minute !== m) continue;
+                    if (a.days.length > 0 && !a.days.includes(day)) continue;
+                    if (a.firedForMinute === stampKey) continue;
+                    a.firedForMinute = stampKey;
+                    triggerAlarm(a);
+                    break;
+                }
+            }
+
+            function renderNextAlarm(now) {
+                const enabled = alarms.filter(a => a.enabled);
+                if (enabled.length === 0) {
+                    nextAlarmEl.textContent = '';
+                    return;
+                }
+                let best = null, bestDelta = Infinity;
+                for (const a of enabled) {
+                    for (let addDays = 0; addDays < 8; addDays++) {
+                        const candidate = new Date(now);
+                        candidate.setDate(now.getDate() + addDays);
+                        candidate.setHours(a.hour, a.minute, 0, 0);
+                        if (candidate <= now) continue;
+                        if (a.days.length > 0 && !a.days.includes(candidate.getDay())) continue;
+                        const delta = candidate - now;
+                        if (delta < bestDelta) { bestDelta = delta; best = { a, candidate }; }
+                        break;
+                    }
+                }
+                if (best) {
+                    const hrs = Math.floor(bestDelta / 3600000);
+                    const mins = Math.round((bestDelta % 3600000) / 60000);
+                    let rel = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                    nextAlarmEl.innerHTML = `Next: <strong>${formatTime(best.a.hour, best.a.minute, true)}</strong> · in ${rel}`;
+                } else {
+                    nextAlarmEl.textContent = '';
+                }
+            }
+
+            function playBeep() {
+                try {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 880;
+                    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
+                    osc.connect(gain).connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.42);
+                } catch (e) { /* audio unavailable */ }
+            }
+
+            function triggerAlarm(alarm) {
+                ringingAlarm = alarm;
+                $('#ringTime').textContent = formatTime(alarm.hour, alarm.minute, true);
+                $('#ringLabel').textContent = alarm.label || 'Alarm';
+                overlay.classList.add('show');
+                renderAlarms();
+                playBeep();
+                beepInterval = setInterval(playBeep, 1200);
+            }
+
+            function stopRinging() {
+                if (beepInterval) { clearInterval(beepInterval); beepInterval = null; }
+                overlay.classList.remove('show');
+                ringingAlarm = null;
+                renderAlarms();
+            }
+
+            function snoozeAlarm() {
+                if (!ringingAlarm) return;
+                const a = ringingAlarm;
+                stopRinging();
+                const snoozeTime = new Date(Date.now() + 5 * 60000);
+                a.hour = snoozeTime.getHours();
+                a.minute = snoozeTime.getMinutes();
+                a.days = [];
+                a.firedForMinute = null;
+                renderAlarms();
+            }
+
+            function renderAlarms() {
+                alarms.sort((a, b) => (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute));
+                alarmCount.textContent = alarms.length;
+                alarmList.innerHTML = '';
+
+                if (alarms.length === 0) {
+                    alarmList.innerHTML = `<div class="empty-state">No alarms yet. Set one below.</div>`;
+                    return;
+                }
+
+                for (const a of alarms) {
+                    const div = document.createElement('div');
+                    div.className = 'alarm' + (a.enabled ? '' : ' disabled') + (ringingAlarm === a ? ' ringing' : '');
+
+                    const daysLabel = a.days.length === 0
+                        ? 'One time'
+                        : a.days.length === 7
+                            ? 'Every day'
+                            : a.days.slice().sort().map(d => dayNames[d]).join(' · ');
+
+                    div.innerHTML = `
+        <div class="left">
+          <div class="time">${formatTime(a.hour, a.minute, false)}<span class="mer">${a.hour >= 12 ? 'PM' : 'AM'}</span></div>
+          <div class="label">${escapeHtml(a.label || 'Alarm')}</div>
+          <div class="days">${daysLabel}</div>
+        </div>
+        <div class="right">
+          <label class="switch">
+            <input type="checkbox" ${a.enabled ? 'checked' : ''} data-id="${a.id}" class="toggle-input">
+            <span class="track"></span>
+          </label>
+          <button class="delete-btn" data-id="${a.id}" title="Delete alarm">✕</button>
+        </div>
+      `;
+                    alarmList.appendChild(div);
+                }
+
+                alarmList.querySelectorAll('.toggle-input').forEach(el => {
+                    el.addEventListener('change', (e) => {
+                        const id = Number(e.target.dataset.id);
+                        const a = alarms.find(x => x.id === id);
+                        if (a) a.enabled = e.target.checked;
+                        renderAlarms();
+                    });
+                });
+                alarmList.querySelectorAll('.delete-btn').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const id = Number(e.target.dataset.id);
+                        alarms = alarms.filter(x => x.id !== id);
+                        renderAlarms();
+                    });
+                });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            dayPicker.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const day = Number(btn.dataset.day);
+                    if (selectedDays.has(day)) { selectedDays.delete(day); btn.classList.remove('active'); }
+                    else { selectedDays.add(day); btn.classList.add('active'); }
+                });
+            });
+
+            $('#addBtn').addEventListener('click', () => {
+                const timeVal = $('#alarmTime').value;
+                if (!timeVal) {
+                    $('#alarmTime').focus();
+                    return;
+                }
+                const [h, m] = timeVal.split(':').map(Number);
+                const label = $('#alarmLabel').value.trim();
+
+                alarms.push({
+                    id: idCounter++,
+                    hour: h,
+                    minute: m,
+                    label: label,
+                    days: Array.from(selectedDays),
+                    enabled: true,
+                    firedForMinute: null
+                });
+
+                $('#alarmLabel').value = '';
+                selectedDays.clear();
+                dayPicker.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+
+                renderAlarms();
+            });
+
+            $('#stopBtn').addEventListener('click', stopRinging);
+            $('#snoozeBtn').addEventListener('click', snoozeAlarm);
+
+            renderAlarms();
+            tickClock();
+            setInterval(tickClock, 1000);
+        })();
+    </script>
+
+</body>
+
+</html>
