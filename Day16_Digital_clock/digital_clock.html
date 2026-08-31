@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Clock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --steel-1: #3A3D42;
+            --steel-2: #23262B;
+            --steel-3: #17181C;
+            --steel-light: #8A8E96;
+            --edge: #4C4F55;
+            --text: #E9EAEC;
+            --muted: #8A8E96;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 50% -10%, #34373D 0%, transparent 55%),
+                linear-gradient(160deg, #1B1D21, #0E0F11);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+        }
+
+        .device {
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(160deg, var(--steel-1), var(--steel-2) 60%, var(--steel-3));
+            border-radius: 26px;
+            padding: 30px 26px;
+            border: 1px solid var(--edge);
+            box-shadow:
+                0 24px 50px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px,
+                    transparent 1px, transparent 4px);
+            pointer-events: none;
+        }
+
+        /* ============ Face (eyes) ============ */
+        .face {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 22px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .eye {
+            width: 64px;
+            height: 64px;
+            background: radial-gradient(circle at 35% 30%, #F2F2F0, #C9CBCE 70%, #9A9DA3);
+            border-radius: 50%;
+            border: 3px solid var(--steel-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow:
+                inset 0 3px 6px rgba(0, 0, 0, 0.25),
+                0 3px 6px rgba(0, 0, 0, 0.4);
+            position: relative;
+            transition: transform 0.08s ease;
+        }
+
+        .eye.blink {
+            transform: scaleY(0.08);
+        }
+
+        .pupil {
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 35% 30%, #4A4E55, #17181C 75%);
+            border-radius: 50%;
+            position: relative;
+            transition: transform 0.05s linear;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15) inset;
+        }
+
+        .pupil::after {
+            content: "";
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+            top: 4px;
+            left: 5px;
+        }
+
+        /* ============ Screen ============ */
+        .screen {
+            background: #0B0C0E;
+            border-radius: 16px;
+            padding: 22px 16px 18px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+            position: relative;
+            z-index: 1;
+        }
+
+        .digits {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 50px;
+            letter-spacing: 0.02em;
+            color: var(--steel-light);
+            background: linear-gradient(180deg, #DADCE0, #9EA1A8 55%, #6B6E74);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+            font-variant-numeric: tabular-nums;
+        }
+
+        .digits .colon {
+            animation: blinkColon 2s steps(1) infinite;
+            color: #C4C7CC;
+            -webkit-text-fill-color: #C4C7CC;
+        }
+
+        @keyframes blinkColon {
+            50% {
+                opacity: 0.2;
+            }
+        }
+
+        .digits .meridiem {
+            font-size: 16px;
+            color: var(--muted);
+            -webkit-text-fill-color: var(--muted);
+            margin-left: 6px;
+            vertical-align: 8px;
+        }
+
+        .date-line {
+            margin-top: 8px;
+            font-size: 12.5px;
+            color: var(--muted);
+            letter-spacing: 0.03em;
+        }
+
+        /* ============ Format toggle ============ */
+        .fmt-toggle {
+            display: flex;
+            justify-content: center;
+            margin-top: 18px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .fmt-toggle button {
+            background: linear-gradient(160deg, #4A4D53, #2A2C30);
+            border: 1px solid var(--edge);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 9px 20px;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: transform 0.1s ease, filter 0.15s ease;
+        }
+
+        .fmt-toggle button:hover {
+            filter: brightness(1.15);
+        }
+
+        .fmt-toggle button:active {
+            transform: scale(0.96);
+        }
+
+        @media (max-width: 420px) {
+            .digits {
+                font-size: 38px;
+            }
+
+            .eye {
+                width: 52px;
+                height: 52px;
+            }
+
+            .pupil {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="device">
+        <div class="face" id="face">
+            <div class="eye" id="eyeLeft">
+                <div class="pupil" id="pupilLeft"></div>
+            </div>
+            <div class="eye" id="eyeRight">
+                <div class="pupil" id="pupilRight"></div>
+            </div>
+        </div>
+
+        <div class="screen">
+            <div class="digits" id="digits">--:--<span class="colon">:</span>--</div>
+            <div class="date-line" id="dateLine"></div>
+        </div>
+
+        <div class="fmt-toggle">
+            <button id="fmtBtn">Switch to 24h</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            let format24 = false;
+
+            const digits = document.getElementById('digits');
+            const dateLine = document.getElementById('dateLine');
+            const fmtBtn = document.getElementById('fmtBtn');
+            const eyes = [document.getElementById('eyeLeft'), document.getElementById('eyeRight')];
+            const pupils = [document.getElementById('pupilLeft'), document.getElementById('pupilRight')];
+
+            function pad(n) { return n.toString().padStart(2, '0'); }
+
+            function updateClock() {
+                const now = new Date();
+                let h = now.getHours();
+                const m = now.getMinutes();
+                const s = now.getSeconds();
+                let meridiem = '';
+
+                if (!format24) {
+                    meridiem = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12;
+                    if (h === 0) h = 12;
+                }
+
+                const merHtml = !format24 ? `<span class="meridiem">${meridiem}</span>` : '';
+                digits.innerHTML = `${pad(h)}<span class="colon">:</span>${pad(m)}<span class="colon">:</span>${pad(s)}${merHtml}`;
+
+                dateLine.textContent = now.toLocaleDateString(undefined, {
+                    weekday: 'long', month: 'long', day: 'numeric'
+                });
+            }
+
+            fmtBtn.addEventListener('click', () => {
+                format24 = !format24;
+                fmtBtn.textContent = format24 ? 'Switch to 12h' : 'Switch to 24h';
+                updateClock();
+            });
+
+            // ---- Googly eyes follow the cursor ----
+            const maxOffset = 9;
+
+            function moveEyes(clientX, clientY) {
+                eyes.forEach((eye, i) => {
+                    const rect = eye.getBoundingClientRect();
+                    const cx = rect.left + rect.width / 2;
+                    const cy = rect.top + rect.height / 2;
+                    const dx = clientX - cx;
+                    const dy = clientY - cy;
+                    const angle = Math.atan2(dy, dx);
+                    const dist = Math.min(maxOffset, Math.hypot(dx, dy) / 8);
+                    const ox = Math.cos(angle) * dist;
+                    const oy = Math.sin(angle) * dist;
+                    pupils[i].style.transform = `translate(${ox}px, ${oy}px)`;
+                });
+            }
+
+            document.addEventListener('mousemove', (e) => moveEyes(e.clientX, e.clientY));
+            document.addEventListener('touchmove', (e) => {
+                if (e.touches[0]) moveEyes(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: true });
+
+            // idle drift when no pointer activity yet
+            moveEyes(window.innerWidth / 2, window.innerHeight / 3);
+
+            // ---- Random blinking ----
+            function blink() {
+                eyes.forEach(eye => eye.classList.add('blink'));
+                setTimeout(() => eyes.forEach(eye => eye.classList.remove('blink')), 140);
+                setTimeout(blink, 2500 + Math.random() * 3500);
+            }
+            setTimeout(blink, 1800);
+
+            updateClock();
+            setInterval(updateClock, 1000);
+        })();
+    </script>
+
+</body>
+
+</html>
